@@ -187,7 +187,7 @@ export default function MenuPage() {
           <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm animate-fade-in" />
           <div
             className="absolute right-0 top-0 h-full w-[320px] max-w-[90vw] bg-white
-              flex flex-col shadow-2xl animate-slide-in"
+              flex flex-col min-h-0 shadow-2xl animate-slide-in"
             onClick={(e) => e.stopPropagation()}
           >
             <Cart />
