@@ -38,6 +38,7 @@ module.exports = {
       animation: {
         'fade-up':    'fadeUp .4s ease forwards',
         'fade-in':    'fadeIn .3s ease forwards',
+        'fade-out':   'fadeOut .3s ease forwards',
         'slide-in':   'slideIn .35s cubic-bezier(.16,1,.3,1) forwards',
         'scale-in':   'scaleIn .2s ease forwards',
         'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
@@ -46,6 +47,7 @@ module.exports = {
       keyframes: {
         fadeUp:     { from: { opacity: 0, transform: 'translateY(12px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
         fadeIn:     { from: { opacity: 0 }, to: { opacity: 1 } },
+        fadeOut:    { from: { opacity: 1 }, to: { opacity: 0 } },
         slideIn:    { from: { opacity: 0, transform: 'translateX(20px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
         scaleIn:    { from: { opacity: 0, transform: 'scale(.95)' }, to: { opacity: 1, transform: 'scale(1)' } },
         pulseSoft:  { '0%,100%': { opacity: 1 }, '50%': { opacity: .5 } },
