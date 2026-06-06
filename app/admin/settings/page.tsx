@@ -17,13 +17,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient()
-      const { data } = await supabase
-        .from('kiosk_settings')
-        .select('value')
-        .eq('key', COVER_KEY)
-        .single()
-      setCoverUrl(data?.value ?? null)
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('kiosk_settings')
+          .select('value')
+          .eq('key', COVER_KEY)
+          .single()
+        if (error) throw error
+        setCoverUrl(data?.value ?? null)
+      } catch (err: unknown) {
+        console.warn('Gagal memuat gambar cover:', err)
+        setCoverUrl(null)
+      }
     }
     load()
   }, [])
@@ -38,7 +44,12 @@ export default function SettingsPage() {
 
     try {
       const supabase = createClient()
-      const ext = file.name.split('.').pop()
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      if (!ext || !['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+        setError('Format file tidak didukung. Gunakan JPG, PNG, atau WebP.')
+        setUploading(false)
+        return
+      }
       const path = `cover.${ext}`
 
       const { error: uploadError } = await supabase.storage
@@ -50,6 +61,10 @@ export default function SettingsPage() {
       const { data: { publicUrl } } = supabase.storage
         .from(BUCKET)
         .getPublicUrl(path)
+
+      if (!publicUrl) {
+        throw new Error('Gagal mendapatkan URL publik dari storage')
+      }
 
       const { error: dbError } = await supabase
         .from('kiosk_settings')
