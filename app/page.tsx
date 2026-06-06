@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { ShoppingCart, Sandwich, SearchX, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import MenuItem from '@/components/MenuItem'
@@ -12,6 +13,7 @@ import AttractScreen from '@/components/AttractScreen'
 import type { MenuItem as MenuItemType, Category } from '@/types'
 
 export default function MenuPage() {
+  const pathname = usePathname()
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -36,12 +38,10 @@ export default function MenuPage() {
     fetchData()
   }, [])
 
-  // Reset idle countdown when user returns to this page (from detail/checkout)
+  // Reset idle countdown when user returns to menu page (from detail/checkout)
   useEffect(() => {
-    const handleFocus = () => setIsIdle(false)
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [])
+    if (pathname === '/') setIsIdle(false)
+  }, [pathname])
 
   useEffect(() => {
     if (isIdle) return
