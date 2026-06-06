@@ -33,8 +33,9 @@ export default function Cart() {
     <div className="flex flex-col h-full">
       <CartHeader count={count} onClose={closeCart} />
 
-      {/* Items */}
-      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1">
+      {/* Items + recommendations (scroll together so footer stays pinned) */}
+      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4">
+        <div className="space-y-1">
         {items.map(({ item, quantity }) => (
           <div
             key={item.id}
@@ -78,16 +79,17 @@ export default function Cart() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
 
-      {/* Recommendations */}
-      <div className="px-5 py-3 border-t border-gray-50 flex-shrink-0">
-        <RecommendationStrip
-          cartIds={items.map((i) => i.item.id)}
-          title="Lengkapi pesananmu"
-          limit={3}
-          variant="list"
-        />
+        {/* Recommendations */}
+        <div className="pt-3 border-t border-gray-50">
+          <RecommendationStrip
+            cartIds={items.map((i) => i.item.id)}
+            title="Lengkapi pesananmu"
+            limit={3}
+            variant="list"
+          />
+        </div>
       </div>
 
       {/* Footer */}
