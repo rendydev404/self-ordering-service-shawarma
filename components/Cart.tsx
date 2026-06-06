@@ -80,7 +80,7 @@ export default function Cart() {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-100 px-5 pt-4 pb-5 space-y-4 bg-white">
+      <div className="sticky bottom-0 border-t border-gray-100 px-5 pt-4 pb-5 space-y-4 bg-white shadow-lg">
         {/* Total breakdown */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-gray-500">
