@@ -21,6 +21,8 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [qty, setQty] = useState(1)
 
+  const [note, setNote] = useState('')
+
   useEffect(() => {
     const supabase = createClient()
     supabase
@@ -33,7 +35,7 @@ export default function ProductDetailPage() {
 
   function handleAdd() {
     if (!item) return
-    for (let i = 0; i < qty; i++) addItem(item)
+    addItem(item, qty, note.trim())
     router.push('/')
   }
 
@@ -96,6 +98,24 @@ export default function ProductDetailPage() {
           {item.description && <p className="text-gray-500 text-sm leading-relaxed">{item.description}</p>}
           <p className="text-2xl font-extrabold text-amber-600 pt-1">{formatRupiah(item.price)}</p>
         </div>
+
+        {/* Note input */}
+        {item.is_available && (
+          <div className="space-y-2">
+            <label htmlFor="note" className="block text-sm font-semibold text-gray-900">
+              Catatan Khusus (Opsional)
+            </label>
+            <textarea
+              id="note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Contoh: Tanpa bawang, pedas sedang..."
+              className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-900 
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400
+                resize-none h-24 transition-shadow"
+            />
+          </div>
+        )}
 
         {/* Qty + Add */}
         {item.is_available && (

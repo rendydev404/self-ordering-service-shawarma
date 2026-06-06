@@ -3,19 +3,33 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   RefreshCw, CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp,
-  Banknote, ShoppingBag, Bell, Search, Loader2
+  Banknote, ShoppingBag, Search, Loader2, CornerDownRight, ChefHat
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatRupiah } from '@/lib/validations'
 import type { OrderWithItems, OrderStatus } from '@/types'
 
-const DING_SOUND = 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg' 
+const DING_SOUND = 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg'
+
+// Waktu relatif yang mudah dibaca kasir: "Baru saja", "3 menit yang lalu", dst.
+function timeAgo(iso: string, now: number): string {
+  const diff = Math.max(0, now - new Date(iso).getTime())
+  const sec = Math.floor(diff / 1000)
+  if (sec < 60) return 'Baru saja'
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min} menit yang lalu`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr} jam yang lalu`
+  const day = Math.floor(hr / 24)
+  return `${day} hari yang lalu`
+}
 
 export default function CashierOrdersPage() {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpand] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [now, setNow] = useState(() => Date.now())
   
   // Audio state
   const [audioPermission, setAudioPermission] = useState(false)
@@ -28,6 +42,30 @@ export default function CashierOrdersPage() {
   useEffect(() => {
     audioRef.current = new Audio(DING_SOUND)
     audioRef.current.volume = 1.0
+  }, [])
+
+  // Unlock audio otomatis pada interaksi pertama user (tanpa perlu toast)
+  useEffect(() => {
+    const unlock = () => {
+      const a = audioRef.current
+      if (a) {
+        // Priming dalam konteks gesture user agar browser mengizinkan autoplay berikutnya
+        a.play().then(() => { a.pause(); a.currentTime = 0 }).catch(() => {})
+      }
+      setAudioPermission(true)
+    }
+    window.addEventListener('pointerdown', unlock, { once: true })
+    window.addEventListener('keydown', unlock, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+  }, [])
+
+  // Tick setiap detik agar label waktu relatif selalu sinkron
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
   }, [])
 
   const playNotification = useCallback(async () => {
@@ -70,16 +108,14 @@ export default function CashierOrdersPage() {
   // Short polling fallback + initial fetch
   useEffect(() => {
     fetchOrders()
-    // Polling setiap 3 detik (Bypass jika Supabase Realtime di dashboard mati)
     const interval = setInterval(fetchOrders, 3000)
 
-    // Real-time subscription (jika aktif)
     const channel = supabase
       .channel('orders_channel')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
-        (payload) => {
+        () => {
           fetchOrders()
         }
       )
@@ -91,29 +127,31 @@ export default function CashierOrdersPage() {
     }
   }, [fetchOrders, supabase])
 
-  // Mark as completed (Lunas) dengan Optimistic Update (Instan tanpa delay)
-  async function markAsPaid(id: string) {
-    // 1. Update UI secara INSTAN (Optimistic)
+  // Mark as Preparing
+  async function markAsPreparing(id: string) {
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'preparing' } : o))
+    await supabase.from('orders').update({ status: 'preparing', updated_at: new Date().toISOString() }).eq('id', id)
+    fetchOrders()
+  }
+
+  // Mark as Completed
+  async function markAsCompleted(id: string) {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'completed' } : o))
-    
-    // 2. Background update ke Database
     await supabase.from('orders').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', id)
     fetchOrders()
   }
 
-  // Cancel order dengan Optimistic Update
+  // Cancel order
   async function cancelOrder(id: string) {
     if (confirm('Batalkan pesanan ini secara permanen?')) {
-      // 1. Update UI secara INSTAN
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled' } : o))
-      
-      // 2. Background update
       await supabase.from('orders').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', id)
       fetchOrders()
     }
   }
 
   const pendingOrders = orders.filter((o) => o.status === 'pending').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  const preparingOrders = orders.filter((o) => o.status === 'preparing').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
   
   const completedOrders = orders.filter((o) => o.status === 'completed')
   const filteredCompletedOrders = completedOrders.filter(o => {
@@ -123,34 +161,127 @@ export default function CashierOrdersPage() {
 
   const todayRevenue = completedOrders.reduce((sum, o) => sum + o.total_amount, 0)
 
+  // Helper untuk merender card pesanan aktif (Pending & Preparing)
+  const renderActiveCard = (order: OrderWithItems, type: 'pending' | 'preparing') => {
+    const expanded = expandedId === order.id
+    const isPreparing = type === 'preparing'
+    
+    return (
+      <div key={order.id} className={`card overflow-hidden border-2 shadow-soft animate-fade-in ${isPreparing ? 'border-blue-200' : 'border-amber-100'}`}>
+        {/* Header Row */}
+        <div 
+          className={`px-5 py-4 flex items-center justify-between cursor-pointer transition-colors ${isPreparing ? 'hover:bg-blue-50/30' : 'hover:bg-amber-50/30'}`}
+          onClick={() => setExpand(expanded ? null : order.id)}
+        >
+          <div className="flex items-center gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center shadow-md flex-shrink-0 ${isPreparing ? 'bg-blue-500 shadow-blue-200' : 'bg-amber-500 shadow-amber-200'}`}>
+              <span className="text-[10px] text-white/80 font-bold uppercase tracking-wider leading-none mb-0.5">Antrian</span>
+              <span className="font-black text-white text-xl leading-none">#{order.order_number}</span>
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 flex items-center gap-2">
+                {formatRupiah(order.total_amount)}
+                <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md uppercase">
+                  {order.payment_method}
+                </span>
+              </p>
+              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                <span className={`font-semibold ${isPreparing ? 'text-blue-600' : 'text-amber-600'}`}>{timeAgo(order.created_at, now)}</span>
+                <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                {' · '}{order.order_items.length} item
+              </p>
+            </div>
+          </div>
+          <div className="w-8 h-8 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
+        </div>
+
+        {/* Action Row */}
+        <div className="px-5 pb-4 pt-1 flex gap-2">
+          {type === 'pending' && order.payment_method === 'qris' ? (
+            <div className="flex-1 bg-blue-50/70 text-blue-600 font-bold py-3.5 rounded-xl border border-blue-100 flex items-center justify-center gap-2 cursor-wait">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Menunggu QRIS Otomatis...</span>
+            </div>
+          ) : type === 'pending' ? (
+            <button 
+              onClick={(e) => { e.stopPropagation(); markAsPreparing(order.id) }}
+              className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-amber-200 flex items-center justify-center gap-2 transition-all active:scale-95"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              Terima & Proses
+            </button>
+          ) : (
+            <button 
+              onClick={(e) => { e.stopPropagation(); markAsCompleted(order.id) }}
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 transition-all active:scale-95"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              Tandai Selesai
+            </button>
+          )}
+        </div>
+
+        {/* Expanded Detail */}
+        {expanded && (
+          <div className={`border-t px-5 py-4 space-y-3 ${isPreparing ? 'border-blue-100/50 bg-blue-50/20' : 'border-amber-100/50 bg-amber-50/20'}`}>
+            <div className="space-y-1.5">
+              {order.order_items.map((oi) => {
+                const [name, note] = oi.menu_item_name.split('|NOTE|')
+                return (
+                  <div key={oi.id} className="flex justify-between text-sm items-start py-1">
+                    <div className="text-gray-700 flex items-start gap-2.5">
+                      <span className={`w-5 h-5 text-[10px] font-bold rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${isPreparing ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {oi.quantity}
+                      </span>
+                      <div>
+                        <span className="leading-snug">{name}</span>
+                        {note && (
+                          <div className="flex items-start gap-1.5 mt-1.5">
+                            <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
+                            <div className={`text-[11px] px-2 py-1 rounded-md font-semibold leading-snug border ${isPreparing ? 'bg-blue-50/80 border-blue-100 text-blue-800' : 'bg-amber-50/80 border-amber-100 text-amber-800'}`}>
+                              {note}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-semibold text-gray-900 flex-shrink-0">{formatRupiah(oi.subtotal)}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {order.notes && (
+              <div className={`rounded-xl p-3 text-sm border ${isPreparing ? 'bg-blue-100/50 border-blue-200/50 text-blue-800' : 'bg-amber-100/50 border-amber-200/50 text-amber-800'}`}>
+                <span className="font-bold">Catatan: </span>{order.notes}
+              </div>
+            )}
+
+            <div className="pt-2 flex justify-end">
+              <button 
+                onClick={(e) => { e.stopPropagation(); cancelOrder(order.id) }}
+                className="text-xs font-semibold text-red-500 hover:text-red-600 flex items-center gap-1 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                Batalkan
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 relative min-h-screen">
-      
-      {/* Tombol izin suara */}
-      {!audioPermission && (
-        <button 
-          onClick={() => {
-            setAudioPermission(true)
-            playNotification() // Unlock audio
-          }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-bold hover:bg-gray-800 transition-all animate-bounce"
-        >
-          <Bell className="w-5 h-5 text-amber-400" />
-          Aktifkan Suara Pesanan Masuk
-        </button>
-      )}
 
       {/* ── Header & Stats ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Kasir Live</h1>
-          <p className="text-gray-400 text-sm mt-0.5 flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            Koneksi Real-time Aktif
-          </p>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Order</h1>
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -168,117 +299,57 @@ export default function CashierOrdersPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pb-20">
         
-        {/* ── Column: PENDING (Menunggu Pembayaran) ── */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white px-5 py-3.5 rounded-2xl border border-gray-100 shadow-sm sticky top-0 z-10">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-500" />
-              <h2 className="font-bold text-gray-900 text-lg">Menunggu Pembayaran</h2>
-            </div>
-            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
-              {pendingOrders.length} Pesanan
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {loading ? (
-              <div className="card h-32 animate-pulse bg-gray-50" />
-            ) : pendingOrders.length === 0 ? (
-              <div className="card p-12 flex flex-col items-center text-center border-dashed border-2 border-gray-200 bg-transparent shadow-none">
-                <ShoppingBag className="w-12 h-12 text-gray-200 mb-3" strokeWidth={1.5} />
-                <p className="font-bold text-gray-400">Tidak ada pesanan tertunda</p>
-                <p className="text-xs text-gray-400 mt-1">Pesanan baru akan muncul otomatis di sini.</p>
+        {/* ── Column: PESANAN AKTIF ── */}
+        <div className="space-y-6">
+          
+          {/* Section: Preparing (Sedang Diproses) */}
+          {preparingOrders.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between bg-white px-5 py-3.5 rounded-2xl border border-blue-100 shadow-sm sticky top-0 z-20">
+                <div className="flex items-center gap-2">
+                  <ChefHat className="w-5 h-5 text-blue-500" />
+                  <h2 className="font-bold text-gray-900 text-lg">Sedang Diproses</h2>
+                </div>
+                <span className="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">
+                  {preparingOrders.length} Pesanan
+                </span>
               </div>
-            ) : (
-              pendingOrders.map((order) => {
-                const expanded = expandedId === order.id
-                return (
-                  <div key={order.id} className="card overflow-hidden border-2 border-amber-100 shadow-soft animate-fade-in">
-                    {/* Header Row */}
-                    <div 
-                      className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-amber-50/30 transition-colors"
-                      onClick={() => setExpand(expanded ? null : order.id)}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-amber-500 rounded-2xl flex flex-col items-center justify-center shadow-md shadow-amber-200 flex-shrink-0">
-                          <span className="text-[10px] text-white/80 font-bold uppercase tracking-wider leading-none mb-0.5">Antrian</span>
-                          <span className="font-black text-white text-xl leading-none">#{order.order_number}</span>
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900 flex items-center gap-2">
-                            {formatRupiah(order.total_amount)}
-                            <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md uppercase">
-                              {order.payment_method}
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} 
-                            {' · '}{order.order_items.length} item
-                          </p>
-                        </div>
-                      </div>
-                      <div className="w-8 h-8 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
-                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </div>
-                    </div>
 
-                    {/* Action Row */}
-                    <div className="px-5 pb-4 pt-1 flex gap-2">
-                      {order.payment_method === 'qris' ? (
-                        <div className="flex-1 bg-blue-50/70 text-blue-600 font-bold py-3.5 rounded-xl border border-blue-100 flex items-center justify-center gap-2 cursor-wait">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>Menunggu QRIS Otomatis...</span>
-                        </div>
-                      ) : (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); markAsPaid(order.id) }}
-                          className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 transition-all active:scale-95"
-                        >
-                          <CheckCircle2 className="w-5 h-5" />
-                          Tandai Lunas & Selesai
-                        </button>
-                      )}
-                    </div>
+              <div className="space-y-3">
+                {preparingOrders.map((order) => renderActiveCard(order, 'preparing'))}
+              </div>
+            </div>
+          )}
 
-                    {/* Expanded Detail */}
-                    {expanded && (
-                      <div className="border-t border-amber-100/50 bg-amber-50/20 px-5 py-4 space-y-3">
-                        <div className="space-y-1.5">
-                          {order.order_items.map((oi) => (
-                            <div key={oi.id} className="flex justify-between text-sm items-center">
-                              <span className="text-gray-700 flex items-center gap-2.5">
-                                <span className="w-5 h-5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md flex items-center justify-center">
-                                  {oi.quantity}
-                                </span>
-                                {oi.menu_item_name}
-                              </span>
-                              <span className="font-semibold text-gray-900">{formatRupiah(oi.subtotal)}</span>
-                            </div>
-                          ))}
-                        </div>
+          {/* Section: Pending (Menunggu Pembayaran) */}
+          <div className="space-y-4">
+            <div className={`flex items-center justify-between bg-white px-5 py-3.5 rounded-2xl border border-gray-100 shadow-sm sticky ${preparingOrders.length > 0 ? 'top-[72px]' : 'top-0'} z-10`}>
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-amber-500" />
+                <h2 className="font-bold text-gray-900 text-lg">Menunggu Pembayaran</h2>
+              </div>
+              <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
+                {pendingOrders.length} Pesanan
+              </span>
+            </div>
 
-                        {order.notes && (
-                          <div className="bg-amber-100/50 border border-amber-200/50 rounded-xl p-3 text-sm text-amber-800">
-                            <span className="font-bold">Catatan: </span>{order.notes}
-                          </div>
-                        )}
-
-                        <div className="pt-2 flex justify-end">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); cancelOrder(order.id) }}
-                            className="text-xs font-semibold text-red-500 hover:text-red-600 flex items-center gap-1 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                            Batalkan
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
+            <div className="space-y-3">
+              {loading ? (
+                <div className="card h-32 animate-pulse bg-gray-50" />
+              ) : pendingOrders.length === 0 && preparingOrders.length === 0 ? (
+                <div className="card p-12 flex flex-col items-center text-center border-dashed border-2 border-gray-200 bg-transparent shadow-none">
+                  <ShoppingBag className="w-12 h-12 text-gray-200 mb-3" strokeWidth={1.5} />
+                  <p className="font-bold text-gray-400">Tidak ada pesanan tertunda</p>
+                  <p className="text-xs text-gray-400 mt-1">Pesanan baru akan muncul otomatis di sini.</p>
+                </div>
+              ) : pendingOrders.length === 0 && preparingOrders.length > 0 ? (
+                null // Jika tidak ada pending tapi ada preparing, tidak perlu pesan kosong di bawahnya
+              ) : (
+                pendingOrders.map((order) => renderActiveCard(order, 'pending'))
+              )}
+            </div>
           </div>
+
         </div>
 
         {/* ── Column: COMPLETED (Selesai Hari Ini) ── */}
@@ -317,15 +388,17 @@ export default function CashierOrdersPage() {
                   
                   {/* Header Row */}
                   <div className="flex items-start justify-between border-b border-dashed border-gray-100 pb-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-emerald-50 rounded-xl flex flex-col items-center justify-center border border-emerald-100 flex-shrink-0">
-                        <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest leading-none mb-0.5">Antrian</span>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex flex-col items-center justify-center border border-emerald-100 shadow-sm flex-shrink-0">
+                        <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider leading-none mb-0.5">Antrian</span>
                         <span className="font-black text-emerald-700 text-xl leading-none">#{order.order_number}</span>
                       </div>
                       <div>
-                        <p className="font-bold text-gray-900 leading-none">{formatRupiah(order.total_amount)}</p>
-                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5">
-                          {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} 
+                        <p className="font-bold text-gray-900">{formatRupiah(order.total_amount)}</p>
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-emerald-600">{timeAgo(order.created_at, now)}</span>
+                          <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                          {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                           <span className="w-1 h-1 bg-gray-300 rounded-full" />
                           <span className="uppercase font-bold text-[9px] tracking-wider bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
                             {order.payment_method}
@@ -340,12 +413,25 @@ export default function CashierOrdersPage() {
 
                   {/* Order Items (Readable by laypeople) */}
                   <div className="space-y-1.5">
-                    {order.order_items.map((oi) => (
-                      <div key={oi.id} className="flex items-start gap-2">
-                        <span className="font-black text-gray-900 text-sm w-4 shrink-0 text-right">{oi.quantity}x</span>
-                        <span className="text-sm font-medium text-gray-700 leading-snug">{oi.menu_item_name}</span>
-                      </div>
-                    ))}
+                    {order.order_items.map((oi) => {
+                      const [name, note] = oi.menu_item_name.split('|NOTE|')
+                      return (
+                        <div key={oi.id} className="flex items-start gap-2">
+                          <span className="font-black text-gray-900 text-sm w-4 shrink-0 text-right">{oi.quantity}x</span>
+                          <div>
+                            <span className="text-sm font-medium text-gray-700 leading-snug">{name}</span>
+                            {note && (
+                              <div className="flex items-start gap-1.5 mt-1.5">
+                                <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
+                                <div className="bg-amber-50/80 border border-amber-100 text-amber-800 text-[11px] px-2 py-1 rounded-md font-semibold leading-snug">
+                                  {note}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
 
                   {/* Notes */}

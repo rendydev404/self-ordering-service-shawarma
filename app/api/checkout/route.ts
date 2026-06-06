@@ -77,9 +77,15 @@ export async function POST(request: Request) {
     const subtotal = unitPrice * quantity
 
     total += subtotal
+    
+    // Embed note using a separator if it exists
+    const finalName = reqItem.note && reqItem.note.trim() !== '' 
+      ? `${menuItem.name}|NOTE|${reqItem.note.trim()}`
+      : menuItem.name
+
     validatedItems.push({
       menu_item_id: menuItem.id,
-      menu_item_name: menuItem.name,
+      menu_item_name: finalName,
       quantity,
       unit_price: unitPrice,
       subtotal,
@@ -91,7 +97,7 @@ export async function POST(request: Request) {
     .from('orders')
     .insert({
       customer_name: payload.customer_name || null,
-      notes: payload.notes || null,
+      notes: null,
       payment_method: payload.payment_method,
       total_amount: total,
       status: 'pending',

@@ -17,8 +17,10 @@ export interface MenuItem {
 }
 
 export interface CartItem {
+  cartItemId: string
   item: MenuItem
   quantity: number
+  note?: string
 }
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled'
@@ -52,10 +54,11 @@ export interface OrderWithItems extends Order {
 
 export interface CheckoutPayload {
   customer_name: string
-  notes: string
+  notes?: string
   payment_method: PaymentMethod
   items: {
     menu_item_id: string
     quantity: number
+    note?: string
   }[]
 }

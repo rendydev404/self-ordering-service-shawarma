@@ -155,39 +155,41 @@ export default function AdminOrdersPage() {
 
                 {/* Row header */}
                 <div
-                  className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-gray-50/60 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 cursor-pointer hover:bg-gray-50/60 transition-colors"
                   onClick={() => setExpand(expanded ? null : order.id)}
                 >
-                  {/* Order number */}
-                  <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-                    <span className="font-extrabold text-amber-600 text-sm leading-none">
-                      #{order.order_number}
-                    </span>
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`${conf.badge} flex items-center gap-1`}>
-                        <Icon className="w-3 h-3" />
-                        {conf.label}
+                  <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+                    {/* Order number */}
+                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <span className="font-extrabold text-amber-600 text-sm leading-none">
+                        #{order.order_number}
                       </span>
-                      {order.customer_name && (
-                        <span className="text-sm font-semibold text-gray-700">{order.customer_name}</span>
-                      )}
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(order.created_at).toLocaleString('id-ID', {
-                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                      })}
-                      {' · '}{order.order_items.length} item
-                    </p>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`${conf.badge} flex items-center gap-1`}>
+                          <Icon className="w-3 h-3" />
+                          {conf.label}
+                        </span>
+                        {order.customer_name && (
+                          <span className="text-sm font-semibold text-gray-700">{order.customer_name}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {new Date(order.created_at).toLocaleString('id-ID', {
+                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                        })}
+                        {' · '}{order.order_items.length} item
+                      </p>
+                    </div>
                   </div>
 
                   {/* Right */}
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <div className="text-right">
-                      <p className="font-extrabold text-gray-900 flex items-center gap-2 justify-end">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto flex-shrink-0">
+                    <div className="text-right flex-1 sm:flex-none">
+                      <p className="font-extrabold text-gray-900 flex items-center justify-start sm:justify-end gap-2">
                         {formatRupiah(order.total_amount)}
                         <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md uppercase">
                           {order.payment_method}

@@ -68,8 +68,7 @@ export default function SettingsPage() {
 
       const { error: dbError } = await supabase
         .from('kiosk_settings')
-        .update({ value: publicUrl })
-        .eq('key', COVER_KEY)
+        .upsert({ key: COVER_KEY, value: publicUrl })
 
       if (dbError) throw dbError
 

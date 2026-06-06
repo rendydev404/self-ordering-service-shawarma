@@ -5,7 +5,7 @@ import Image from 'next/image'
 import {
   Plus, Pencil, Trash2, ImagePlus, X, Loader2,
   AlertCircle, UploadCloud, Sandwich, ToggleLeft, ToggleRight,
-  FileArchive,
+  FileArchive, Search,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatRupiah } from '@/lib/validations'
@@ -52,6 +52,7 @@ export default function AdminMenuPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [preview, setPreview]     = useState<string | null>(null)
   const [showZipModal, setShowZipModal] = useState(false)
+  const [searchQuery, setSearchQuery]   = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function fetchData() {
@@ -159,16 +160,36 @@ export default function AdminMenuPage() {
 
   const displayImage = preview ?? form.image_url
 
+  const filteredItems = items.filter(item => {
+    if (!searchQuery) return true;
+    const lowerQ = searchQuery.toLowerCase();
+    return item.name.toLowerCase().includes(lowerQ) || 
+           (item.categories?.name && item.categories.name.toLowerCase().includes(lowerQ));
+  });
+
   return (
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Manajemen Menu</h1>
-          <p className="text-gray-400 text-sm mt-0.5">{items.length} item terdaftar</p>
+          <p className="text-gray-400 text-sm mt-0.5">{filteredItems.length} dari {items.length} item</p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Search Input */}
+          <div className="relative w-full sm:w-auto sm:min-w-[200px]">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-2xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors text-sm"
+              placeholder="Cari menu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           <button
             onClick={() => setShowZipModal(true)}
             className="py-2.5 px-5 text-sm font-semibold rounded-2xl flex items-center gap-2
@@ -390,6 +411,12 @@ export default function AdminMenuPage() {
           <p className="font-semibold text-gray-500">Belum ada menu</p>
           <p className="text-sm text-gray-400 mt-1">Tambahkan menu pertamamu</p>
         </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="card p-16 flex flex-col items-center text-center">
+          <Search className="w-10 h-10 text-gray-200 mb-3" />
+          <p className="font-semibold text-gray-500">Menu tidak ditemukan</p>
+          <p className="text-sm text-gray-400 mt-1">Coba kata kunci lain</p>
+        </div>
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
@@ -405,11 +432,11 @@ export default function AdminMenuPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, idx) => (
+                {filteredItems.map((item, idx) => (
                   <tr
                     key={item.id}
                     className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors
-                      ${idx === items.length - 1 ? 'border-0' : ''}`}
+                      ${idx === filteredItems.length - 1 ? 'border-0' : ''}`}
                   >
                     {/* Thumbnail */}
                     <td className="py-3.5 px-5">

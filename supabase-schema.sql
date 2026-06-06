@@ -221,11 +221,77 @@ WHERE NOT EXISTS (
 );
 
 -- ============================================================
+-- 9. TABEL KIOSK SETTINGS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS kiosk_settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE kiosk_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "kiosk_settings_select_public" ON kiosk_settings;
+DROP POLICY IF EXISTS "kiosk_settings_all_admin"     ON kiosk_settings;
+
+-- Siapa saja bisa baca (kiosk perlu ambil cover_image_url tanpa login)
+CREATE POLICY "kiosk_settings_select_public"
+  ON kiosk_settings FOR SELECT USING (true);
+
+-- Hanya admin (authenticated) yang bisa insert/update/delete
+CREATE POLICY "kiosk_settings_all_admin"
+  ON kiosk_settings FOR ALL
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
+
+-- Seed baris default supaya UPDATE tidak gagal karena row belum ada
+INSERT INTO kiosk_settings (key, value)
+VALUES ('cover_image_url', null)
+ON CONFLICT (key) DO NOTHING;
+
+-- ============================================================
+-- 10. SUPABASE STORAGE — BUCKET "kiosk-assets"
+-- ============================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'kiosk-assets',
+  'kiosk-assets',
+  true,
+  10485760,  -- max 10 MB per file
+  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public             = true,
+  file_size_limit    = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+DROP POLICY IF EXISTS "Public can view kiosk assets"  ON storage.objects;
+DROP POLICY IF EXISTS "Admin can upload kiosk assets" ON storage.objects;
+DROP POLICY IF EXISTS "Admin can update kiosk assets" ON storage.objects;
+DROP POLICY IF EXISTS "Admin can delete kiosk assets" ON storage.objects;
+
+CREATE POLICY "Public can view kiosk assets"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'kiosk-assets');
+
+CREATE POLICY "Admin can upload kiosk assets"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'kiosk-assets' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Admin can update kiosk assets"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'kiosk-assets' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Admin can delete kiosk assets"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'kiosk-assets' AND auth.role() = 'authenticated');
+
+-- ============================================================
 -- SELESAI!
 --
 -- Setelah menjalankan script ini:
 -- 1. Cek tabel: Table Editor > menu_items, orders, dll
--- 2. Cek bucket: Storage > menu-images (harus muncul & public)
+-- 2. Cek bucket: Storage > menu-images & kiosk-assets (harus muncul & public)
 -- 3. Buat admin user: Authentication > Users > Add user
 -- 4. Isi .env.local dengan URL & keys dari Settings > API
 --

@@ -56,7 +56,6 @@ const PAYMENT_OPTIONS: PaymentOption[] = [
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, totalPrice, clearCart } = useCart()
-  const [notes, setNotes]                 = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [loading, setLoading]             = useState(false)
   const [error, setError]                 = useState('')
@@ -87,9 +86,8 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          notes: notes.trim(),
           payment_method: paymentMethod,
-          items: items.map(({ item, quantity }) => ({ menu_item_id: item.id, quantity })),
+          items: items.map(({ item, quantity, note }) => ({ menu_item_id: item.id, quantity, note: note?.trim() })),
         }),
       })
       const data = await res.json()
@@ -265,36 +263,7 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* Order Notes */}
-          <div className="card p-5 space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 bg-amber-100 rounded-xl flex items-center justify-center">
-                <FileText className="w-3.5 h-3.5 text-amber-600" />
-              </div>
-              <div>
-                <h2 className="font-bold text-gray-900 leading-none">Catatan Pesanan</h2>
-                <p className="text-gray-400 text-xs mt-0.5">Opsional — pedas, tanpa saus, dll</p>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="input-label mb-0">Catatan Khusus</label>
-                <span className="text-xs text-gray-300">{notes.length}/500</span>
-              </div>
-              <div className="relative">
-                <FileText className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-300" />
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Contoh: Tanpa bawang, pedas level 3, tambah saus..."
-                  maxLength={500}
-                  rows={3}
-                  className="input resize-none pl-10"
-                />
-              </div>
-            </div>
-          </div>
+          {/* Order Notes Removed */}
 
           {/* Error */}
           {error && (

@@ -16,8 +16,12 @@ export default function MenuItem({ item }: Props) {
   const { items, addItem, updateQuantity } = useCart()
   const router = useRouter()
   const [imgError, setImgError] = useState(false)
-  const cartItem = items.find((i) => i.item.id === item.id)
-  const quantity = cartItem?.quantity ?? 0
+  
+  const itemCartItems = items.filter((i) => i.item.id === item.id)
+  const totalQuantity = itemCartItems.reduce((acc, curr) => acc + curr.quantity, 0)
+  const noNoteCartItem = itemCartItems.find((i) => !i.note)
+  const quantity = noNoteCartItem?.quantity ?? 0
+
   const showPlaceholder = !item.image_url || imgError
 
   return (
@@ -60,16 +64,16 @@ export default function MenuItem({ item }: Props) {
         )}
 
         {/* Quantity badge (when in cart) */}
-        {quantity > 0 && (
+        {totalQuantity > 0 && (
           <div className="absolute top-2.5 right-2.5 w-6 h-6 bg-amber-500 text-white text-xs font-extrabold rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-            {quantity}
+            {totalQuantity}
           </div>
         )}
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-1">
+      <div className="p-3 sm:p-4 flex flex-col flex-1">
+        <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-1">
           {item.name}
         </h3>
         {item.description && (
@@ -79,9 +83,9 @@ export default function MenuItem({ item }: Props) {
         )}
 
         {/* Price + Controls */}
-        <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
           <div>
-            <span className="font-extrabold text-amber-600 text-base leading-none">
+            <span className="font-extrabold text-amber-600 text-sm sm:text-base leading-none">
               {formatRupiah(item.price)}
             </span>
           </div>
@@ -94,7 +98,7 @@ export default function MenuItem({ item }: Props) {
                   addItem(item)
                 }}
                 aria-label={`Tambah ${item.name}`}
-                className="w-9 h-9 bg-amber-gradient text-white rounded-2xl flex items-center justify-center
+                className="w-8 h-8 sm:w-9 sm:h-9 bg-amber-gradient text-white rounded-2xl flex items-center justify-center
                   shadow-amber hover:brightness-110 active:scale-95 transition-all duration-150"
               >
                 <Plus className="w-4 h-4" strokeWidth={2.5} />
@@ -104,15 +108,17 @@ export default function MenuItem({ item }: Props) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    updateQuantity(item.id, quantity - 1)
+                    if (noNoteCartItem) {
+                      updateQuantity(noNoteCartItem.cartItemId, quantity - 1)
+                    }
                   }}
-                  className="w-7 h-7 bg-amber-100 hover:bg-amber-200 text-amber-700
+                  className="w-6 h-6 sm:w-7 sm:h-7 bg-amber-100 hover:bg-amber-200 text-amber-700
                     rounded-xl flex items-center justify-center transition-colors"
                   aria-label="Kurangi"
                 >
-                  <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  <Minus className="w-3 sm:w-3.5 h-3 sm:h-3.5" strokeWidth={2.5} />
                 </button>
-                <span className="w-6 text-center font-extrabold text-gray-900 text-sm tabular-nums">
+                <span className="w-5 sm:w-6 text-center font-extrabold text-gray-900 text-xs sm:text-sm tabular-nums">
                   {quantity}
                 </span>
                 <button
@@ -120,11 +126,11 @@ export default function MenuItem({ item }: Props) {
                     e.stopPropagation()
                     addItem(item)
                   }}
-                  className="w-7 h-7 bg-amber-gradient text-white rounded-xl
+                  className="w-6 h-6 sm:w-7 sm:h-7 bg-amber-gradient text-white rounded-xl
                     flex items-center justify-center transition-all hover:brightness-110"
                   aria-label="Tambah"
                 >
-                  <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  <Plus className="w-3 sm:w-3.5 h-3 sm:h-3.5" strokeWidth={2.5} />
                 </button>
               </div>
             )

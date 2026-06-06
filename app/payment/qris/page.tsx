@@ -60,7 +60,7 @@ export default function QRISPaymentPage() {
       const supabase = createClient()
       await supabase
         .from('orders')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .update({ status: 'preparing', updated_at: new Date().toISOString() })
         .eq('id', orderId)
 
       if (!isMounted) return
@@ -86,11 +86,11 @@ export default function QRISPaymentPage() {
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 2000))
 
-    // Update order to completed
+    // Update order to preparing (straight to kitchen)
     const supabase = createClient()
     await supabase
       .from('orders')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .update({ status: 'preparing', updated_at: new Date().toISOString() })
       .eq('id', orderId)
 
     setStatus('success')
