@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { ShoppingCart, Sandwich, SearchX, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import MenuItem from '@/components/MenuItem'
@@ -23,14 +23,14 @@ export default function MenuPage() {
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient()
-      const [{ data: items }, { data: cats }, { data: setting }] = await Promise.all([
+      const [items_result, cats_result, setting_result] = await Promise.all([
         supabase.from('menu_items').select('*, categories(id,name,sort_order)').order('sort_order'),
         supabase.from('categories').select('*').order('sort_order'),
         supabase.from('kiosk_settings').select('value').eq('key', 'cover_image_url').single(),
       ])
-      setMenuItems(items ?? [])
-      setCategories(cats ?? [])
-      setCoverUrl(setting?.value ?? null)
+      setMenuItems(items_result.data ?? [])
+      setCategories(cats_result.data ?? [])
+      setCoverUrl(setting_result?.data?.value ?? null)
       setLoading(false)
     }
     fetchData()
