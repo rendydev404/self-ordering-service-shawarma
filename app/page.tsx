@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { ShoppingCart, Sandwich, SearchX, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import MenuItem from '@/components/MenuItem'
@@ -8,6 +8,7 @@ import CategoryFilter from '@/components/CategoryFilter'
 import Cart from '@/components/Cart'
 import { useCart } from '@/store/cart'
 import { formatRupiah } from '@/lib/validations'
+import AttractScreen from '@/components/AttractScreen'
 import type { MenuItem as MenuItemType, Category } from '@/types'
 
 export default function MenuPage() {
@@ -15,21 +16,50 @@ export default function MenuPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [loading, setLoading] = useState(true)
-  const { totalItems, totalPrice, isOpen, toggleCart } = useCart()
+  const { totalItems, totalPrice, isOpen, toggleCart, clearCart, closeCart } = useCart()
+  const [isIdle, setIsIdle] = useState(true)
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient()
-      const [{ data: items }, { data: cats }] = await Promise.all([
+      const [{ data: items }, { data: cats }, { data: setting }] = await Promise.all([
         supabase.from('menu_items').select('*, categories(id,name,sort_order)').order('sort_order'),
         supabase.from('categories').select('*').order('sort_order'),
+        supabase.from('kiosk_settings').select('value').eq('key', 'cover_image_url').single(),
       ])
       setMenuItems(items ?? [])
       setCategories(cats ?? [])
+      setCoverUrl(setting?.value ?? null)
       setLoading(false)
     }
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (isIdle) return
+
+    const IDLE_MS = 15_000
+    let timer: ReturnType<typeof setTimeout>
+
+    function resetTimer() {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        clearCart()
+        closeCart()
+        setIsIdle(true)
+      }, IDLE_MS)
+    }
+
+    const events = ['click', 'touchstart', 'mousemove', 'keydown'] as const
+    events.forEach((e) => window.addEventListener(e, resetTimer))
+    resetTimer()
+
+    return () => {
+      clearTimeout(timer)
+      events.forEach((e) => window.removeEventListener(e, resetTimer))
+    }
+  }, [isIdle, clearCart, closeCart])
 
   const filtered =
     selectedCategory === 'all'
@@ -183,6 +213,13 @@ export default function MenuPage() {
 
       {/* Bottom padding on mobile so content isn't hidden behind bar */}
       {count > 0 && <div className="h-24 lg:hidden" />}
+
+      {isIdle && (
+        <AttractScreen
+          onStart={() => setIsIdle(false)}
+          coverUrl={coverUrl}
+        />
+      )}
     </div>
   )
 }
