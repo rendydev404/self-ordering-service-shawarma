@@ -36,6 +36,13 @@ export default function MenuPage() {
     fetchData()
   }, [])
 
+  // Reset idle countdown when user returns to this page (from detail/checkout)
+  useEffect(() => {
+    const handleFocus = () => setIsIdle(false)
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
   useEffect(() => {
     if (isIdle) return
 

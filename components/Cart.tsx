@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { ShoppingCart, Plus, Minus, Trash2, X, ArrowRight } from 'lucide-react'
 import { useCart } from '@/store/cart'
 import { formatRupiah } from '@/lib/validations'
-import RecommendationStrip from '@/components/RecommendationStrip'
 
 export default function Cart() {
   const router = useRouter()
@@ -33,9 +32,8 @@ export default function Cart() {
     <div className="flex flex-col h-full">
       <CartHeader count={count} onClose={closeCart} />
 
-      {/* Items + recommendations (scroll together so footer stays pinned) */}
-      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4">
-        <div className="space-y-1">
+      {/* Items */}
+      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1">
         {items.map(({ item, quantity }) => (
           <div
             key={item.id}
@@ -79,17 +77,6 @@ export default function Cart() {
             </div>
           </div>
         ))}
-        </div>
-
-        {/* Recommendations */}
-        <div className="pt-3 border-t border-gray-50">
-          <RecommendationStrip
-            cartIds={items.map((i) => i.item.id)}
-            title="Lengkapi pesananmu"
-            limit={3}
-            variant="list"
-          />
-        </div>
       </div>
 
       {/* Footer */}
