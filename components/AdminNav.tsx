@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ClipboardList, Sandwich, LogOut, LayoutDashboard, Tag, Radio, BarChart3 } from 'lucide-react'
+import { ClipboardList, Sandwich, LogOut, LayoutDashboard, Tag, Radio, BarChart3, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { href: '/admin/reports',    label: 'Laporan',   icon: BarChart3 },
   { href: '/admin/menu',       label: 'Menu',      icon: LayoutDashboard },
   { href: '/admin/categories', label: 'Kategori',  icon: Tag },
+  { href: '/admin/settings',   label: 'Settings',  icon: Settings },
 ]
 
 export default function AdminNav() {
