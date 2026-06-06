@@ -33,7 +33,7 @@ export default function Cart() {
       <CartHeader count={count} onClose={closeCart} />
 
       {/* Items */}
-      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-3 space-y-1">
         {items.map(({ item, quantity }) => (
           <div
             key={item.id}
@@ -80,7 +80,7 @@ export default function Cart() {
       </div>
 
       {/* Footer */}
-      <div className="sticky bottom-0 border-t border-gray-100 px-5 pt-4 pb-5 space-y-4 bg-white shadow-lg">
+      <div className="flex-shrink-0 border-t border-gray-100 px-5 pt-4 pb-5 space-y-4 bg-white">
         {/* Total breakdown */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-gray-500">
