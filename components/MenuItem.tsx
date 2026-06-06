@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Plus, Minus, Sandwich } from 'lucide-react'
 import type { MenuItem as MenuItemType } from '@/types'
@@ -13,6 +14,7 @@ interface Props {
 
 export default function MenuItem({ item }: Props) {
   const { items, addItem, updateQuantity } = useCart()
+  const router = useRouter()
   const [imgError, setImgError] = useState(false)
   const cartItem = items.find((i) => i.item.id === item.id)
   const quantity = cartItem?.quantity ?? 0
@@ -20,9 +22,7 @@ export default function MenuItem({ item }: Props) {
 
   return (
     <div
-      onClick={() => {
-        if (item.is_available) addItem(item)
-      }}
+      onClick={() => router.push(`/menu/${item.id}`)}
       className={`group bg-white rounded-3xl overflow-hidden border border-gray-100
         shadow-card hover:shadow-card-hover hover:-translate-y-1
         transition-all duration-250 flex flex-col cursor-pointer

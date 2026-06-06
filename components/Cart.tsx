@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { ShoppingCart, Plus, Minus, Trash2, X, ArrowRight } from 'lucide-react'
 import { useCart } from '@/store/cart'
 import { formatRupiah } from '@/lib/validations'
+import RecommendationStrip from '@/components/RecommendationStrip'
 
 export default function Cart() {
   const router = useRouter()
@@ -77,6 +78,16 @@ export default function Cart() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Recommendations */}
+      <div className="px-5 py-3 border-t border-gray-50 flex-shrink-0">
+        <RecommendationStrip
+          cartIds={items.map((i) => i.item.id)}
+          title="Lengkapi pesananmu"
+          limit={3}
+          variant="list"
+        />
       </div>
 
       {/* Footer */}
