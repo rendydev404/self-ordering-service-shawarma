@@ -22,6 +22,10 @@ function QRLoginContent() {
         return
       }
 
+      // SECURITY: Segera hapus username dan password dari URL bar dan riwayat (history)
+      // agar tidak bisa dilihat oleh pelanggan jika mereka membongkar browser Kiosk.
+      window.history.replaceState(null, '', '/kiosk/qr-login')
+
       const supabase = createClient()
       
       // Auto login using the provided credentials
