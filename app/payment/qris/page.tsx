@@ -48,34 +48,7 @@ function QRISPaymentContent() {
     return () => clearInterval(interval)
   }, [status])
 
-  // Auto-simulate payment after 5 seconds (for testing purposes)
-  useEffect(() => {
-    if (status !== 'waiting' || !orderId) return
-    
-    let isMounted = true
-    const timer = setTimeout(async () => {
-      if (!isMounted) return
-      setStatus('processing')
-
-      await fetch('/api/qris-simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId })
-      })
-
-      if (!isMounted) return
-      setStatus('success')
-
-      setTimeout(() => {
-        if (isMounted) router.push(`/order-success?id=${orderId}&number=${orderNumber}&pay=qris`)
-      }, 2000)
-    }, 2000)
-
-    return () => {
-      isMounted = false
-      clearTimeout(timer)
-    }
-  }, [status, orderId, orderNumber, router])
+  // (Auto-simulate removed as requested)
 
 
   // Simulate payment
