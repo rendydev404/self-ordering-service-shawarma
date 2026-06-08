@@ -5,7 +5,7 @@ import Image from 'next/image'
 import {
   Plus, Pencil, Trash2, ImagePlus, X, Loader2,
   AlertCircle, UploadCloud, Sandwich, ToggleLeft, ToggleRight,
-  FileArchive, Search,
+  FileArchive, Search, Star, PlusCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatRupiah } from '@/lib/validations'
@@ -43,6 +43,8 @@ async function deleteStorageImage(url: string) {
 export default function AdminMenuPage() {
   const [items, setItems]         = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [bestsellers, setBestsellers] = useState<string[]>([])
+  const [upsells, setUpsells] = useState<string[]>([])
   const [loading, setLoading]     = useState(true)
   const [form, setForm]           = useState<FormState>(EMPTY)
   const [showForm, setShowForm]   = useState(false)
@@ -57,12 +59,27 @@ export default function AdminMenuPage() {
 
   async function fetchData() {
     const supabase = createClient()
-    const [{ data: m }, { data: c }] = await Promise.all([
+    const [{ data: m }, { data: c }, { data: b }, { data: u }] = await Promise.all([
       supabase.from('menu_items').select('*, categories(id,name,sort_order)').order('sort_order'),
       supabase.from('categories').select('*').order('sort_order'),
+      supabase.from('kiosk_settings').select('value').eq('key', 'bestseller_ids').maybeSingle(),
+      supabase.from('kiosk_settings').select('value').eq('key', 'upsell_ids').maybeSingle(),
     ])
     setItems(m ?? [])
     setCategories(c ?? [])
+    
+    try {
+      setBestsellers(b?.value ? JSON.parse(b.value) : [])
+    } catch {
+      setBestsellers([])
+    }
+
+    try {
+      setUpsells(u?.value ? JSON.parse(u.value) : [])
+    } catch {
+      setUpsells([])
+    }
+
     setLoading(false)
   }
 
@@ -150,6 +167,36 @@ export default function AdminMenuPage() {
     fetchData()
   }
 
+  async function toggleBestseller(item: MenuItem) {
+    const isBs = bestsellers.includes(item.id)
+    const newBs = isBs 
+      ? bestsellers.filter(id => id !== item.id)
+      : [...bestsellers, item.id]
+      
+    setBestsellers(newBs)
+    
+    const supabase = createClient()
+    await supabase.from('kiosk_settings').upsert({ 
+      key: 'bestseller_ids', 
+      value: JSON.stringify(newBs) 
+    })
+  }
+
+  async function toggleUpsell(item: MenuItem) {
+    const isUp = upsells.includes(item.id)
+    const newUp = isUp 
+      ? upsells.filter(id => id !== item.id)
+      : [...upsells, item.id]
+      
+    setUpsells(newUp)
+    
+    const supabase = createClient()
+    await supabase.from('kiosk_settings').upsert({ 
+      key: 'upsell_ids', 
+      value: JSON.stringify(newUp) 
+    })
+  }
+
   async function deleteItem(item: MenuItem) {
     if (!confirm(`Hapus "${item.name}"?`)) return
     const supabase = createClient()
@@ -173,7 +220,7 @@ export default function AdminMenuPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Manajemen Menu</h1>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Manajemen Menu</h1>
           <p className="text-gray-400 text-sm mt-0.5">{filteredItems.length} dari {items.length} item</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -193,9 +240,8 @@ export default function AdminMenuPage() {
           <button
             onClick={() => setShowZipModal(true)}
             className="py-2.5 px-5 text-sm font-semibold rounded-2xl flex items-center gap-2
-              bg-gradient-to-r from-violet-500 to-indigo-600 text-white
-              hover:from-violet-600 hover:to-indigo-700 shadow-lg shadow-violet-200
-              transition-all duration-200 hover:shadow-xl hover:shadow-violet-300 hover:-translate-y-0.5"
+              bg-violet-600 text-white hover:bg-violet-700
+              transition-all duration-200 active:scale-[.98]"
           >
             <FileArchive className="w-4 h-4" />
             Import ZIP
@@ -213,7 +259,7 @@ export default function AdminMenuPage() {
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget) closeForm() }}
         >
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col max-h-[92vh] animate-scale-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[92vh] animate-scale-in">
 
             {/* Sticky header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -222,7 +268,7 @@ export default function AdminMenuPage() {
                   <Sandwich className="w-5 h-5 text-amber-500" strokeWidth={1.5} />
                 </div>
                 <div>
-                  <h2 className="font-extrabold text-lg text-gray-900 leading-none">
+                  <h2 className="font-bold text-lg text-gray-900 leading-none">
                     {form.id ? 'Edit Menu' : 'Tambah Menu Baru'}
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -400,7 +446,7 @@ export default function AdminMenuPage() {
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1,2,3,4].map((i) => (
-            <div key={i} className="rounded-3xl bg-gray-100 animate-pulse h-48" />
+            <div key={i} className="rounded-2xl bg-gray-100 animate-pulse h-48" />
           ))}
         </div>
       ) : items.length === 0 ? (
@@ -485,6 +531,18 @@ export default function AdminMenuPage() {
                     {/* Actions */}
                     <td className="py-3.5 px-5">
                       <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => toggleUpsell(item)}
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors
+                            ${upsells.includes(item.id) ? 'bg-indigo-50 text-indigo-500 hover:bg-indigo-100' : 'bg-gray-50 text-gray-300 hover:text-indigo-500 hover:bg-indigo-50'}`}
+                          title="Tandai sebagai Upsell Pop-up">
+                          <PlusCircle className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => toggleBestseller(item)}
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors
+                            ${bestsellers.includes(item.id) ? 'bg-yellow-50 text-yellow-500 hover:bg-yellow-100' : 'bg-gray-50 text-gray-300 hover:text-yellow-500 hover:bg-yellow-50'}`}
+                          title="Tandai Best Seller">
+                          <Star className="w-4 h-4" fill={bestsellers.includes(item.id) ? 'currentColor' : 'none'} />
+                        </button>
                         <button onClick={() => openEdit(item)}
                           className="w-8 h-8 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-xl
                             flex items-center justify-center transition-colors"

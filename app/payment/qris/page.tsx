@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -11,7 +11,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { formatRupiah } from '@/lib/validations'
 
-export default function QRISPaymentPage() {
+function QRISPaymentContent() {
   const router = useRouter()
   const params = useSearchParams()
   const orderId = params.get('id')
@@ -136,17 +136,17 @@ export default function QRISPaymentPage() {
         </div>
 
         {/* ── QR Card ── */}
-        <div className="bg-white rounded-3xl shadow-xl shadow-blue-100/50 border border-blue-100/50 overflow-hidden relative">
+        <div className="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden relative">
 
-          {/* Top gradient bar */}
-          <div className="h-1.5 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500" />
+          {/* Top accent bar */}
+          <div className="h-1 bg-blue-500" />
 
           <div className="p-6 pb-5 text-center">
 
             {/* Amount badge */}
             <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 px-5 py-2.5 rounded-2xl mb-5">
               <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">Total Pembayaran</span>
-              <span className="text-lg font-black text-blue-700">{formatRupiah(total)}</span>
+              <span className="text-lg font-bold text-blue-700">{formatRupiah(total)}</span>
             </div>
 
             {/* QR Code Container */}
@@ -198,7 +198,7 @@ export default function QRISPaymentPage() {
               <div className="mt-5 flex items-center justify-center gap-2 text-sm">
                 <Clock className="w-4 h-4 text-gray-400" />
                 <span className="text-gray-500 font-medium">Berlaku</span>
-                <span className={`font-black tabular-nums ${timeLeft <= 60 ? 'text-red-500' : 'text-gray-800'}`}>
+                <span className={`font-bold tabular-nums ${timeLeft <= 60 ? 'text-red-500' : 'text-gray-800'}`}>
                   {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                 </span>
               </div>
@@ -207,7 +207,7 @@ export default function QRISPaymentPage() {
             {/* Success message */}
             {status === 'success' && (
               <div className="mt-5">
-                <p className="text-lg font-black text-emerald-600">Pembayaran Berhasil! 🎉</p>
+                <p className="text-lg font-bold text-emerald-600">Pembayaran Berhasil! 🎉</p>
                 <p className="text-sm text-gray-400 mt-1">Mengalihkan ke halaman pesanan...</p>
               </div>
             )}
@@ -240,7 +240,7 @@ export default function QRISPaymentPage() {
               'Konfirmasi pembayaran di aplikasi',
             ].map((step, idx) => (
               <div key={idx} className="flex items-start gap-3">
-                <span className="w-5 h-5 bg-blue-100 text-blue-600 text-[10px] font-black rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="w-5 h-5 bg-blue-100 text-blue-600 text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   {idx + 1}
                 </span>
                 <p className="text-sm text-gray-600 leading-snug">{step}</p>
@@ -300,5 +300,17 @@ export default function QRISPaymentPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function QRISPaymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 via-[#f0f7ff] to-white">
+        <div className="w-8 h-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+      </div>
+    }>
+      <QRISPaymentContent />
+    </Suspense>
   )
 }

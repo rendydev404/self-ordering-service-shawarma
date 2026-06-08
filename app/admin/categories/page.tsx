@@ -90,7 +90,7 @@ export default function AdminCategoriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Kategori Menu</h1>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Kategori Menu</h1>
           <p className="text-gray-400 text-sm mt-0.5">{categories.length} kategori terdaftar</p>
         </div>
         <button onClick={openAdd} className="btn-primary py-2.5 px-5 text-sm">
@@ -105,7 +105,7 @@ export default function AdminCategoriesPage() {
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget) closeForm() }}
         >
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm animate-scale-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-scale-in">
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -114,7 +114,7 @@ export default function AdminCategoriesPage() {
                   <Tag className="w-5 h-5 text-amber-500" strokeWidth={1.5} />
                 </div>
                 <div>
-                  <h2 className="font-extrabold text-lg text-gray-900 leading-none">
+                  <h2 className="font-bold text-lg text-gray-900 leading-none">
                     {form.id ? 'Edit Kategori' : 'Tambah Kategori'}
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">

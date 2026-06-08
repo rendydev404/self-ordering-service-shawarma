@@ -32,9 +32,15 @@ export function rankRecommendations(input: RankInput): MenuItem[] {
 
   const excluded = new Set<string>([...seedIds, ...cartIds])
   const byId = new Map(menuItems.map((m) => [m.id, m]))
+  const isTopping = (id: string) => {
+    // @ts-ignore - categories might be nested depending on the query
+    const catName = byId.get(id)?.categories?.name?.toLowerCase() || '';
+    return catName.includes('toping') || catName.includes('topping');
+  }
+
   const isPickable = (id: string) => {
     const m = byId.get(id)
-    return !!m && m.is_available && !excluded.has(id)
+    return !!m && m.is_available && !excluded.has(id) && !isTopping(id)
   }
 
   // 1. Co-purchase tally: orders containing any seed product.
@@ -54,26 +60,15 @@ export function rankRecommendations(input: RankInput): MenuItem[] {
   }
 
   const sortOrder = (id: string) => byId.get(id)?.sort_order ?? 0
-  const isTopping = (id: string) => {
-    // @ts-ignore - categories might be nested depending on the query
-    const catName = byId.get(id)?.categories?.name?.toLowerCase() || '';
-    return catName.includes('toping') || catName.includes('topping');
-  }
 
   // 2. Co-purchase recommendations.
   const coRanked = [...coTally.entries()]
     .filter(([id]) => isPickable(id))
     .sort((a, b) => {
-      // 1. Boost Topping category
-      const aIsTopping = isTopping(a[0]);
-      const bIsTopping = isTopping(b[0]);
-      if (aIsTopping && !bIsTopping) return -1;
-      if (!aIsTopping && bIsTopping) return 1;
-      
-      // 2. Tally
+      // 1. Tally
       if (b[1] !== a[1]) return b[1] - a[1];
       
-      // 3. Sort Order
+      // 2. Sort Order
       return sortOrder(a[0]) - sortOrder(b[0]);
     })
     .map(([id]) => id)
@@ -91,17 +86,11 @@ export function rankRecommendations(input: RankInput): MenuItem[] {
       .filter((m) => isPickable(m.id) && !seen.has(m.id))
       .filter((m) => m.category_id !== (seedCategoryId ?? null))
       .sort((a, b) => {
-        // 1. Boost Topping category
-        const aIsTopping = isTopping(a.id);
-        const bIsTopping = isTopping(b.id);
-        if (aIsTopping && !bIsTopping) return -1;
-        if (!aIsTopping && bIsTopping) return 1;
-
-        // 2. Tally
+        // 1. Tally
         const diff = (popTally.get(b.id) ?? 0) - (popTally.get(a.id) ?? 0);
         if (diff !== 0) return diff;
         
-        // 3. Sort Order
+        // 2. Sort Order
         return a.sort_order - b.sort_order;
       })
       .map((m) => m.id)

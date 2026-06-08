@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { validateCheckoutPayload } from '@/lib/validations'
 import type { CheckoutPayload } from '@/types'
 
@@ -22,12 +24,49 @@ export async function POST(request: Request) {
 
   const payload = body as CheckoutPayload
 
-  // Gunakan service role untuk bypass RLS — harga divalidasi di sini, bukan dari frontend
-  const supabase = createServiceClient()
+  // Ambil auth token dari request (via server client biasa)
+  // Untuk identifikasi Outlet yang valid
+  const supabaseService = createServiceClient()
+  
+  const cookieStore = cookies()
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
+  )
+
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Kiosk tidak terautentikasi' }, { status: 401 })
+  }
+
+  const { data: profile } = await supabaseService
+    .from('profiles')
+    .select('outlet_id, role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    return NextResponse.json({ error: 'Sesi tidak valid, profil tidak ditemukan' }, { status: 403 })
+  }
+
+  let outlet_id = profile.outlet_id
+
+  // Berikan kelonggaran untuk Admin yang ingin mengetes Kiosk
+  if (profile.role === 'admin' && !outlet_id) {
+    const { data: defaultOutlet } = await supabaseService.from('outlets').select('id').limit(1).single()
+    if (defaultOutlet) {
+      outlet_id = defaultOutlet.id
+    }
+  }
+
+  if (!outlet_id) {
+    return NextResponse.json({ error: 'Akun Anda tidak memiliki Cabang (Outlet) yang terhubung.' }, { status: 403 })
+  }
 
   // Ambil data menu dari database (harga otoritatif dari server)
   const menuItemIds = payload.items.map((i) => i.menu_item_id)
-  const { data: menuItems, error: menuError } = await supabase
+  const { data: menuItems, error: menuError } = await supabaseService
     .from('menu_items')
     .select('id, name, price, is_available')
     .in('id', menuItemIds)
@@ -78,10 +117,17 @@ export async function POST(request: Request) {
 
     total += subtotal
     
-    // Embed note using a separator if it exists
-    const finalName = reqItem.note && reqItem.note.trim() !== '' 
-      ? `${menuItem.name}|NOTE|${reqItem.note.trim()}`
-      : menuItem.name
+    // Embed relationship data using separators
+    let finalName = menuItem.name
+    if (reqItem.cartItemId) {
+      finalName += `|ID|${reqItem.cartItemId}`
+    }
+    if (reqItem.parentId) {
+      finalName += `|PARENT|${reqItem.parentId}`
+    }
+    if (reqItem.note && reqItem.note.trim() !== '') {
+      finalName += `|NOTE|${reqItem.note.trim()}`
+    }
 
     validatedItems.push({
       menu_item_id: menuItem.id,
@@ -93,9 +139,10 @@ export async function POST(request: Request) {
   }
 
   // Buat order
-  const { data: order, error: orderError } = await supabase
+  const { data: order, error: orderError } = await supabaseService
     .from('orders')
     .insert({
+      outlet_id: outlet_id,
       customer_name: payload.customer_name || null,
       notes: null,
       payment_method: payload.payment_method,
@@ -111,7 +158,7 @@ export async function POST(request: Request) {
   }
 
   // Buat order items
-  const { error: itemsError } = await supabase.from('order_items').insert(
+  const { error: itemsError } = await supabaseService.from('order_items').insert(
     validatedItems.map((item) => ({
       ...item,
       order_id: order.id,
@@ -121,7 +168,7 @@ export async function POST(request: Request) {
   if (itemsError) {
     console.error('Order items error:', itemsError)
     // Rollback: hapus order jika items gagal
-    await supabase.from('orders').delete().eq('id', order.id)
+    await supabaseService.from('orders').delete().eq('id', order.id)
     return NextResponse.json({ error: 'Gagal menyimpan item pesanan' }, { status: 500 })
   }
 

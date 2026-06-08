@@ -2,40 +2,77 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sandwich, Loader2, AlertCircle, Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react'
+import { Sandwich, Loader2, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-export default function AdminLoginPage() {
+export default function UnifiedLoginPage() {
   const router = useRouter()
-  const [email, setEmail]       = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
-  const [showPw, setShowPw]     = useState(false)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
+    
     const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) {
-      setError('Email atau password salah')
+    
+    // Smart Detection: Pseudo-Email
+    let loginEmail = identifier.trim()
+    if (!loginEmail.includes('@')) {
+      loginEmail = `${loginEmail}@outlet.local`
+    }
+
+    const { error: authError, data: authData } = await supabase.auth.signInWithPassword({ 
+      email: loginEmail, 
+      password 
+    })
+
+    if (authError || !authData.user) {
+      setError('Username/Email atau password salah')
       setLoading(false)
       return
     }
-    router.push('/admin/orders')
+
+    // Fetch Profile Role to determine redirect
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authData.user.id)
+      .single()
+
+    if (profileError || !profileData) {
+      // Fallback redirect if profile not found (maybe they are admin created raw in auth?)
+      router.push('/admin')
+      router.refresh()
+      return
+    }
+
+    // Role-based Redirect
+    if (profileData.role === 'admin') {
+      router.push('/admin')
+    } else if (profileData.role === 'kasir') {
+      router.push('/kasir')
+    } else if (profileData.role === 'kiosk') {
+      router.push('/')
+    } else {
+      router.push('/')
+    }
+    
     router.refresh()
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5] relative overflow-hidden selection:bg-amber-100 p-4">
       
-      {/* ── Subtle Background Decorations ── */}
+      {/* Subtle Background Decorations */}
       <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] bg-amber-400/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none" />
       
-      {/* ── Centered Login Card ── */}
+      {/* Centered Login Card */}
       <div className="w-full max-w-[420px] bg-white rounded-[2rem] shadow-2xl shadow-amber-900/5 border border-amber-100/50 p-8 sm:p-10 relative z-10 animate-fade-up">
         
         {/* Logo */}
@@ -48,24 +85,24 @@ export default function AdminLoginPage() {
         {/* Welcome Text */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">SHAWARMA POS</h2>
-          <p className="text-gray-500 mt-2 text-sm font-medium">Masuk untuk mengakses dashboard kasir.</p>
+          <p className="text-gray-500 mt-2 text-sm font-medium">Masuk sebagai Admin, Kasir, atau Kiosk.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
-          {/* Email Input */}
+          {/* Identifier Input */}
           <div className="space-y-1.5">
-            <label className="text-sm font-bold text-gray-700 ml-1">Alamat Email</label>
+            <label className="text-sm font-bold text-gray-700 ml-1">Email atau Username</label>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Mail className="w-5 h-5 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                <User className="w-5 h-5 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
               </div>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
-                autoComplete="email"
-                placeholder="admin@shawarma.com"
+                autoComplete="username"
+                placeholder="admin@shawarma.com / kasir_sudirman"
                 className="block w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-transparent text-gray-900 rounded-2xl placeholder-gray-400 focus:bg-white focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 transition-all font-medium"
               />
             </div>

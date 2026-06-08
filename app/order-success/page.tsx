@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, ReceiptText, Banknote, CreditCard, QrCode, Ticket, ArrowRight, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { cleanItemName } from '@/lib/order-item-name'
 import { formatRupiah } from '@/lib/validations'
 import type { OrderWithItems, PaymentMethod } from '@/types'
 
@@ -14,7 +15,7 @@ const PAYMENT_LABELS: Record<PaymentMethod, { label: string; icon: React.ReactNo
   card: { label: 'Kartu', icon: <CreditCard className="w-4 h-4" />, color: 'text-purple-700',  bg: 'bg-purple-50 border-purple-100'   },
 }
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const router = useRouter()
   const params = useSearchParams()
   const orderId = params.get('id')
@@ -64,22 +65,19 @@ export default function OrderSuccessPage() {
       <div className="w-full max-w-md space-y-6 animate-fade-up">
 
         {/* ── Ticket Container ── */}
-        <div className="relative bg-white rounded-[2rem] shadow-2xl shadow-amber-900/5 overflow-hidden border border-amber-100/50">
-          
+        <div className="relative bg-white rounded-2xl shadow-card overflow-hidden border border-gray-100">
+
           {/* Top Section */}
-          <div className="p-8 pb-6 text-center bg-gradient-to-b from-amber-50/50 to-white relative">
-            {/* Background Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-amber-400/20 rounded-full blur-3xl pointer-events-none" />
-            
+          <div className="p-8 pb-6 text-center bg-amber-50/40 relative">
             <div className="relative">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-full shadow-lg shadow-emerald-200 mb-5 animate-bounce-in">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-500 rounded-full shadow-sm shadow-emerald-200 mb-5 animate-bounce-in">
                 <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2} />
               </div>
 
-              <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2">
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
                 {isQris ? 'Pesanan Berhasil!' : 'Selesaikan Pembayaran!'}
               </h1>
-              <p className="text-gray-500 text-sm leading-relaxed max-w-[280px] mx-auto font-medium">
+              <p className="text-gray-500 text-sm leading-relaxed max-w-[280px] mx-auto">
                 {isQris 
                   ? 'Pembayaran Anda telah kami terima. Silakan duduk manis, pesanan Anda akan segera disiapkan.'
                   : 'Harap foto atau ingat nomor antrian ini dan segera menuju meja kasir untuk membayar.'}
@@ -111,11 +109,11 @@ export default function OrderSuccessPage() {
               <Ticket className="w-48 h-48" />
             </div>
 
-            <p className="text-amber-500 text-xs font-black uppercase tracking-[0.2em] mb-1">
+            <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em] mb-1">
               Nomor Antrian
             </p>
             <div className="inline-block relative">
-              <p className="text-[5.5rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-500 to-orange-600 leading-none tabular-nums drop-shadow-sm">
+              <p className="text-[5.5rem] font-bold text-amber-600 leading-none tabular-nums">
                 #{orderNumber}
               </p>
             </div>
@@ -125,7 +123,7 @@ export default function OrderSuccessPage() {
 
         {/* ── Order Detail Collapsible ── */}
         {!loading && order && (
-          <div className="bg-white rounded-[2rem] border border-amber-100/50 p-6 shadow-xl shadow-amber-900/5">
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-card">
             <div className="flex items-center gap-2 mb-5">
               <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
                 <ReceiptText className="w-4 h-4 text-amber-500" />
@@ -143,10 +141,10 @@ export default function OrderSuccessPage() {
                   <div className="absolute left-[8px] top-1.5 w-2 h-2 bg-amber-400 rounded-full ring-4 ring-white" />
                   
                   <div className="min-w-0">
-                    <p className="text-gray-800 font-semibold text-sm truncate">{oi.menu_item_name}</p>
+                    <p className="text-gray-800 font-semibold text-sm truncate">{cleanItemName(oi.menu_item_name)}</p>
                     <p className="text-gray-400 text-xs mt-0.5">{oi.quantity}x @ {formatRupiah(oi.unit_price)}</p>
                   </div>
-                  <span className="text-gray-900 text-sm font-black flex-shrink-0">
+                  <span className="text-gray-900 text-sm font-bold flex-shrink-0">
                     {formatRupiah(oi.subtotal)}
                   </span>
                 </div>
@@ -162,7 +160,7 @@ export default function OrderSuccessPage() {
                     {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                <span className="font-black text-2xl text-gray-900">
+                <span className="font-bold text-2xl text-gray-900">
                   {formatRupiah(order.total_amount)}
                 </span>
               </div>
@@ -212,5 +210,17 @@ export default function OrderSuccessPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]">
+        <div className="w-8 h-8 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin" />
+      </div>
+    }>
+      <OrderSuccessContent />
+    </Suspense>
   )
 }

@@ -3,13 +3,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   RefreshCw, CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp,
-  Banknote, ShoppingBag, Search, Loader2, CornerDownRight, ChefHat
+  Banknote, ShoppingBag, Search, Loader2, CornerDownRight, ChefHat, Store
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useMyOutlet } from '@/lib/useMyOutlet'
 import { formatRupiah } from '@/lib/validations'
 import type { OrderWithItems, OrderStatus } from '@/types'
 
-const DING_SOUND = 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg'
+const DING_SOUND = '/sound-pesanan.mp3'
 
 // Waktu relatif yang mudah dibaca kasir: "Baru saja", "3 menit yang lalu", dst.
 function timeAgo(iso: string, now: number): string {
@@ -37,6 +38,7 @@ export default function CashierOrdersPage() {
   const previousOrderCountRef = useRef<number>(0)
 
   const supabase = createClient()
+  const { outletId, outletName, loaded: outletLoaded } = useMyOutlet()
 
   // Initialize audio
   useEffect(() => {
@@ -82,16 +84,19 @@ export default function CashierOrdersPage() {
 
   // Fetch data
   const fetchOrders = useCallback(async () => {
+    if (!outletId) return // hanya tampilkan pesanan cabang kasir ini
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     const { data } = await supabase
       .from('orders')
       .select('*, order_items(*)')
+      .eq('outlet_id', outletId)
       .gte('created_at', today.toISOString())
       .order('created_at', { ascending: false })
       .limit(200)
-      
+
     if (data) {
       setOrders(data)
       setLoading(false)
@@ -103,7 +108,12 @@ export default function CashierOrdersPage() {
       }
       previousOrderCountRef.current = currentPendingCount
     }
-  }, [supabase, playNotification, audioPermission])
+  }, [supabase, playNotification, audioPermission, outletId])
+
+  // Jika kasir tidak terhubung ke outlet mana pun, jangan biarkan loading menggantung
+  useEffect(() => {
+    if (outletLoaded && !outletId) setLoading(false)
+  }, [outletLoaded, outletId])
 
   // Short polling fallback + initial fetch
   useEffect(() => {
@@ -166,6 +176,43 @@ export default function CashierOrdersPage() {
     const expanded = expandedId === order.id
     const isPreparing = type === 'preparing'
     
+    // Helper to parse and group items
+    const getGroupedItems = (orderItems: any[]) => {
+      const parsed = orderItems.map(oi => {
+        let name = oi.menu_item_name
+        let note = ''
+        let id = oi.id
+        let parentId = null
+        
+        const noteSplit = name.split('|NOTE|')
+        if (noteSplit.length > 1) { note = noteSplit[1]; name = noteSplit[0] }
+        
+        const parentSplit = name.split('|PARENT|')
+        if (parentSplit.length > 1) { parentId = parentSplit[1]; name = parentSplit[0] }
+        
+        const idSplit = name.split('|ID|')
+        if (idSplit.length > 1) { id = idSplit[1]; name = idSplit[0] }
+        
+        return { ...oi, parsedName: name, parsedNote: note, parsedId: id, parsedParentId: parentId }
+      })
+      
+      const rootItems = parsed.filter(i => !i.parsedParentId)
+      // fallback if a child's parent doesn't exist
+      const validRootIds = new Set(rootItems.map(r => r.parsedId))
+      
+      const childrenMap: any = {}
+      parsed.filter(i => i.parsedParentId).forEach(i => {
+        if (!validRootIds.has(i.parsedParentId!)) {
+          rootItems.push(i) // treat as root
+        } else {
+          if (!childrenMap[i.parsedParentId!]) childrenMap[i.parsedParentId!] = []
+          childrenMap[i.parsedParentId!].push(i)
+        }
+      })
+      
+      return { rootItems, childrenMap }
+    }
+
     return (
       <div key={order.id} className={`card overflow-hidden border-2 shadow-soft animate-fade-in ${isPreparing ? 'border-blue-200' : 'border-amber-100'}`}>
         {/* Header Row */}
@@ -176,7 +223,7 @@ export default function CashierOrdersPage() {
           <div className="flex items-center gap-4">
             <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center shadow-md flex-shrink-0 ${isPreparing ? 'bg-blue-500 shadow-blue-200' : 'bg-amber-500 shadow-amber-200'}`}>
               <span className="text-[10px] text-white/80 font-bold uppercase tracking-wider leading-none mb-0.5">Antrian</span>
-              <span className="font-black text-white text-xl leading-none">#{order.order_number}</span>
+              <span className="font-bold text-white text-xl leading-none">#{order.order_number}</span>
             </div>
             <div>
               <p className="font-bold text-gray-900 flex items-center gap-2">
@@ -189,7 +236,7 @@ export default function CashierOrdersPage() {
                 <span className={`font-semibold ${isPreparing ? 'text-blue-600' : 'text-amber-600'}`}>{timeAgo(order.created_at, now)}</span>
                 <span className="w-1 h-1 bg-gray-300 rounded-full" />
                 {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                {' · '}{order.order_items.length} item
+                {' · '}{getGroupedItems(order.order_items).rootItems.length} pesanan utama
               </p>
             </div>
           </div>
@@ -208,7 +255,7 @@ export default function CashierOrdersPage() {
           ) : type === 'pending' ? (
             <button 
               onClick={(e) => { e.stopPropagation(); markAsPreparing(order.id) }}
-              className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-amber-200 flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow-sm shadow-amber-200 flex items-center justify-center gap-2 transition-all active:scale-95"
             >
               <CheckCircle2 className="w-5 h-5" />
               Terima & Proses
@@ -216,7 +263,7 @@ export default function CashierOrdersPage() {
           ) : (
             <button 
               onClick={(e) => { e.stopPropagation(); markAsCompleted(order.id) }}
-              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-sm shadow-emerald-200 flex items-center justify-center gap-2 transition-all active:scale-95"
             >
               <CheckCircle2 className="w-5 h-5" />
               Tandai Selesai
@@ -228,34 +275,69 @@ export default function CashierOrdersPage() {
         {expanded && (
           <div className={`border-t px-5 py-4 space-y-3 ${isPreparing ? 'border-blue-100/50 bg-blue-50/20' : 'border-amber-100/50 bg-amber-50/20'}`}>
             <div className="space-y-1.5">
-              {order.order_items.map((oi) => {
-                const [name, note] = oi.menu_item_name.split('|NOTE|')
-                return (
-                  <div key={oi.id} className="flex justify-between text-sm items-start py-1">
-                    <div className="text-gray-700 flex items-start gap-2.5">
-                      <span className={`w-5 h-5 text-[10px] font-bold rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${isPreparing ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {oi.quantity}
-                      </span>
-                      <div>
-                        <span className="leading-snug">{name}</span>
-                        {note && (
-                          <div className="flex items-start gap-1.5 mt-1.5">
-                            <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-                            <div className={`text-[11px] px-2 py-1 rounded-md font-semibold leading-snug border ${isPreparing ? 'bg-blue-50/80 border-blue-100 text-blue-800' : 'bg-amber-50/80 border-amber-100 text-amber-800'}`}>
-                              {note}
+              {(() => {
+                const { rootItems, childrenMap } = getGroupedItems(order.order_items)
+                return rootItems.map((oi) => (
+                  <div key={oi.id} className="py-1">
+                    <div className="flex justify-between text-sm items-start gap-2">
+                      <div className="text-gray-700 flex items-start gap-2.5 min-w-0 flex-1">
+                        <span className={`w-5 h-5 text-[10px] font-bold rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${isPreparing ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {oi.quantity}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <span className="leading-snug font-semibold break-words">{oi.parsedName}</span>
+                          {oi.parsedNote && (
+                            <div className="flex items-start gap-1.5 mt-1.5 mb-1">
+                              <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
+                              <div className={`text-[11px] px-2 py-1 rounded-md font-semibold leading-snug border break-words whitespace-pre-wrap min-w-0 flex-1 ${isPreparing ? 'bg-blue-50/80 border-blue-100 text-blue-800' : 'bg-amber-50/80 border-amber-100 text-amber-800'}`}>
+                                {oi.parsedNote}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
+                      <span className="font-semibold text-gray-900 flex-shrink-0">{formatRupiah(oi.subtotal)}</span>
                     </div>
-                    <span className="font-semibold text-gray-900 flex-shrink-0">{formatRupiah(oi.subtotal)}</span>
+                    
+                    {/* Children / Extras */}
+                    {childrenMap[oi.parsedId] && childrenMap[oi.parsedId].length > 0 && (
+                      <div className="mt-0 pt-1 space-y-1.5 pl-3 ml-2.5 border-l-2 border-gray-200 relative">
+                        {/* Connecting top border to parent */}
+                        <div className="absolute -top-3 left-[-3px] w-0.5 h-3 bg-gray-200" />
+                        
+                        {childrenMap[oi.parsedId].map((child: any) => (
+                          <div key={child.id} className="relative flex justify-between text-sm items-start pl-3 py-0.5 gap-2">
+                            {/* Branch indicator */}
+                            <div className="absolute -left-[3px] top-3 w-3 h-0.5 bg-gray-200" />
+                            <div className="text-gray-600 flex items-start gap-2 min-w-0 flex-1">
+                              <span className="w-4 text-[10px] font-bold text-center mt-0.5 shrink-0">{child.quantity}x</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="leading-snug font-medium flex items-center gap-1.5 flex-wrap">
+                                  <span className={`text-[9px] font-bold uppercase px-1 rounded-sm ${isPreparing ? 'bg-blue-200 text-blue-700' : 'bg-amber-200 text-amber-800'}`}>Extra</span>
+                                  <span className="break-words min-w-0">{child.parsedName}</span>
+                                </div>
+                                {child.parsedNote && (
+                                  <div className="flex items-start gap-1.5 mt-1">
+                                    <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
+                                    <div className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold leading-snug border break-words whitespace-pre-wrap min-w-0 flex-1 ${isPreparing ? 'bg-blue-50/80 border-blue-100 text-blue-800' : 'bg-amber-50/80 border-amber-100 text-amber-800'}`}>
+                                      {child.parsedNote}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <span className="font-medium text-gray-500 flex-shrink-0 text-[13px]">{formatRupiah(child.subtotal)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )
-              })}
+                ))
+              })()}
             </div>
 
             {order.notes && (
-              <div className={`rounded-xl p-3 text-sm border ${isPreparing ? 'bg-blue-100/50 border-blue-200/50 text-blue-800' : 'bg-amber-100/50 border-amber-200/50 text-amber-800'}`}>
+              <div className={`rounded-xl p-3 text-sm border break-words whitespace-pre-wrap ${isPreparing ? 'bg-blue-100/50 border-blue-200/50 text-blue-800' : 'bg-amber-100/50 border-amber-200/50 text-amber-800'}`}>
                 <span className="font-bold">Catatan: </span>{order.notes}
               </div>
             )}
@@ -281,17 +363,23 @@ export default function CashierOrdersPage() {
       {/* ── Header & Stats ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Order</h1>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Order</h1>
+          {outletName && (
+            <p className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-lg w-max border border-gray-200">
+              <Store className="w-4 h-4 text-amber-500" />
+              Anda berada di cabang: <span className="font-bold text-gray-700">{outletName}</span>
+            </p>
+          )}
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="bg-amber-50 border border-amber-100 px-5 py-3 rounded-2xl flex-1 sm:flex-none flex items-center gap-4">
-            <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-200">
+            <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
               <Banknote className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-[10px] font-bold text-amber-600/80 uppercase tracking-widest leading-none">Pendapatan Lunas</p>
-              <p className="text-xl font-black text-amber-700 mt-1 leading-none">{formatRupiah(todayRevenue)}</p>
+              <p className="text-xl font-bold text-amber-700 mt-1 leading-none">{formatRupiah(todayRevenue)}</p>
             </div>
           </div>
         </div>
@@ -391,7 +479,7 @@ export default function CashierOrdersPage() {
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex flex-col items-center justify-center border border-emerald-100 shadow-sm flex-shrink-0">
                         <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider leading-none mb-0.5">Antrian</span>
-                        <span className="font-black text-emerald-700 text-xl leading-none">#{order.order_number}</span>
+                        <span className="font-bold text-emerald-700 text-xl leading-none">#{order.order_number}</span>
                       </div>
                       <div>
                         <p className="font-bold text-gray-900">{formatRupiah(order.total_amount)}</p>
@@ -413,30 +501,90 @@ export default function CashierOrdersPage() {
 
                   {/* Order Items (Readable by laypeople) */}
                   <div className="space-y-1.5">
-                    {order.order_items.map((oi) => {
-                      const [name, note] = oi.menu_item_name.split('|NOTE|')
-                      return (
-                        <div key={oi.id} className="flex items-start gap-2">
-                          <span className="font-black text-gray-900 text-sm w-4 shrink-0 text-right">{oi.quantity}x</span>
-                          <div>
-                            <span className="text-sm font-medium text-gray-700 leading-snug">{name}</span>
-                            {note && (
-                              <div className="flex items-start gap-1.5 mt-1.5">
-                                <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-                                <div className="bg-amber-50/80 border border-amber-100 text-amber-800 text-[11px] px-2 py-1 rounded-md font-semibold leading-snug">
-                                  {note}
+                    {(() => {
+                      const parsed = order.order_items.map(oi => {
+                        let name = oi.menu_item_name
+                        let note = ''
+                        let id = oi.id
+                        let parentId = null
+                        
+                        const noteSplit = name.split('|NOTE|')
+                        if (noteSplit.length > 1) { note = noteSplit[1]; name = noteSplit[0] }
+                        
+                        const parentSplit = name.split('|PARENT|')
+                        if (parentSplit.length > 1) { parentId = parentSplit[1]; name = parentSplit[0] }
+                        
+                        const idSplit = name.split('|ID|')
+                        if (idSplit.length > 1) { id = idSplit[1]; name = idSplit[0] }
+                        
+                        return { ...oi, parsedName: name, parsedNote: note, parsedId: id, parsedParentId: parentId }
+                      })
+                      
+                      const rootItems = parsed.filter(i => !i.parsedParentId)
+                      const validRootIds = new Set(rootItems.map(r => r.parsedId))
+                      
+                      const childrenMap: any = {}
+                      parsed.filter(i => i.parsedParentId).forEach(i => {
+                        if (!validRootIds.has(i.parsedParentId!)) {
+                          rootItems.push(i)
+                        } else {
+                          if (!childrenMap[i.parsedParentId!]) childrenMap[i.parsedParentId!] = []
+                          childrenMap[i.parsedParentId!].push(i)
+                        }
+                      })
+
+                      return rootItems.map((oi) => (
+                        <div key={oi.id} className="py-1">
+                          <div className="flex items-start gap-2">
+                            <span className="font-bold text-gray-900 text-sm w-4 shrink-0 text-right">{oi.quantity}x</span>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-sm font-semibold text-gray-800 leading-snug break-words">{oi.parsedName}</span>
+                              {oi.parsedNote && (
+                                <div className="flex items-start gap-1.5 mt-1.5 mb-1">
+                                  <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
+                                  <div className="bg-amber-50/80 border border-amber-100 text-amber-800 text-[11px] px-2 py-1 rounded-md font-semibold leading-snug break-words whitespace-pre-wrap min-w-0 flex-1">
+                                    {oi.parsedNote}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
+
+                          {/* Children / Extras */}
+                          {childrenMap[oi.parsedId] && childrenMap[oi.parsedId].length > 0 && (
+                            <div className="mt-0 pt-1 space-y-1 pl-3 ml-4 border-l-2 border-gray-200 relative">
+                              <div className="absolute -top-3 left-[-3px] w-0.5 h-3 bg-gray-200" />
+                              {childrenMap[oi.parsedId].map((child: any) => (
+                                <div key={child.id} className="relative flex items-start gap-2 pl-3 py-0.5">
+                                  {/* Branch indicator */}
+                                  <div className="absolute -left-[3px] top-3 w-3 h-0.5 bg-gray-200" />
+                                  <span className="font-bold text-gray-600 text-xs w-4 shrink-0 text-right mt-0.5">{child.quantity}x</span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-medium text-gray-600 leading-snug flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-[8px] font-bold uppercase bg-gray-200 text-gray-500 px-1 rounded-sm">Extra</span>
+                                      <span className="break-words min-w-0">{child.parsedName}</span>
+                                    </div>
+                                    {child.parsedNote && (
+                                      <div className="flex items-start gap-1.5 mt-1">
+                                        <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
+                                        <div className="bg-amber-50/80 border border-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-md font-semibold leading-snug break-words whitespace-pre-wrap min-w-0 flex-1">
+                                          {child.parsedNote}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )
-                    })}
+                      ))
+                    })()}
                   </div>
 
                   {/* Notes */}
                   {order.notes && (
-                    <div className="mt-3 bg-amber-50 rounded-lg p-2.5 text-xs text-amber-800 font-medium border border-amber-100">
+                    <div className="mt-3 bg-amber-50 rounded-lg p-2.5 text-xs text-amber-800 font-medium border border-amber-100 break-words whitespace-pre-wrap">
                       <span className="font-bold">Catatan:</span> {order.notes}
                     </div>
                   )}

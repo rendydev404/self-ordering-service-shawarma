@@ -21,13 +21,13 @@ export async function GET(request: Request) {
   // All menu items (for availability, category, sort order, hydration).
   const { data: menuRows, error: menuErr } = await supabase
     .from('menu_items')
-    .select('id, category_id, name, description, price, image_url, is_available, sort_order, categories(id, name)')
+    .select('id, category_id, name, description, price, image_url, is_available, sort_order, outlet_id, categories(*)')
     .order('sort_order')
 
   if (menuErr || !menuRows) {
     return NextResponse.json({ items: [] })
   }
-  const menuItems = menuRows as MenuItem[]
+  const menuItems = menuRows as any as MenuItem[]
 
   // Orders that contain any seed product.
   const { data: seedOrderRows } = await supabase

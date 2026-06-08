@@ -3,16 +3,16 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ClipboardList, Sandwich, LogOut, LayoutDashboard, Tag, Radio, BarChart3, Settings, Menu, X } from 'lucide-react'
+import { ClipboardList, Sandwich, LogOut, LayoutDashboard, Tag, Radio, BarChart3, Settings, Menu, X, Store, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const links = [
-  { href: '/admin/orders',     label: 'Order', icon: Radio },
-  { href: '/admin',            label: 'Histori',   icon: ClipboardList },
-  { href: '/admin/reports',    label: 'Laporan',   icon: BarChart3 },
+  { href: '/admin',            label: 'Overview',  icon: BarChart3 },
+  { href: '/admin/reports',    label: 'Laporan',   icon: ClipboardList },
   { href: '/admin/menu',       label: 'Menu',      icon: LayoutDashboard },
   { href: '/admin/categories', label: 'Kategori',  icon: Tag },
-  { href: '/admin/settings',   label: 'Settings',  icon: Settings },
+  { href: '/admin/outlets',    label: 'Cabang',    icon: Store },
+  { href: '/admin/users',      label: 'Pengguna',  icon: Users },
 ]
 
 export default function AdminNav() {
@@ -29,16 +29,16 @@ export default function AdminNav() {
   return (
     <>
       {/* ── Top bar mobile (< md) ── */}
-      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-gray-950 border-b border-white/5">
+      <header className="print:hidden md:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 shadow-sm">
         <Link href="/admin" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-amber-gradient rounded-xl flex items-center justify-center shadow-amber">
-            <Sandwich className="w-4 h-4 text-white" strokeWidth={2} />
+          <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center">
+            <Sandwich className="w-4 h-4 text-white" strokeWidth={2.5} />
           </div>
-          <p className="text-white font-bold text-sm">SHAWARMA</p>
+          <p className="text-gray-900 font-bold text-sm tracking-tight">SHAWARMA</p>
         </Link>
         <button
           onClick={() => setOpen(true)}
-          className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 hover:bg-white/5 transition-colors"
+          className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           aria-label="Buka menu"
         >
           <Menu className="w-5 h-5" />
@@ -55,22 +55,22 @@ export default function AdminNav() {
 
       {/* ── Sidebar ── */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 md:z-auto
-          h-screen w-60 shrink-0
-          bg-gray-950 border-r border-white/5
+        className={`print:hidden fixed md:sticky top-0 left-0 z-50 md:z-auto
+          h-screen w-64 shrink-0
+          bg-white border-r border-gray-100
           flex flex-col
           transition-transform duration-300 ease-out
-          ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+          ${open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:translate-x-0`}
       >
         {/* Brand */}
-        <div className="flex items-center justify-between h-16 px-5 border-b border-white/5 shrink-0">
-          <Link href="/admin" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-            <div className="w-9 h-9 bg-amber-gradient rounded-xl flex items-center justify-center shadow-amber">
-              <Sandwich className="w-5 h-5 text-white" strokeWidth={2} />
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100 shrink-0">
+          <Link href="/admin" className="flex items-center gap-3" onClick={() => setOpen(false)}>
+            <div className="w-9 h-9 bg-amber-500 rounded-2xl flex items-center justify-center">
+              <Sandwich className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-white font-bold text-sm leading-none">SHAWARMA</p>
-              <p className="text-amber-500/70 text-[10px] font-medium uppercase tracking-widest leading-none mt-1">
+              <p className="text-gray-900 font-bold text-[15px] tracking-tight leading-none">SHAWARMA</p>
+              <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest leading-none mt-1">
                 Admin
               </p>
             </div>
@@ -78,7 +78,7 @@ export default function AdminNav() {
           {/* Tombol tutup (mobile) */}
           <button
             onClick={() => setOpen(false)}
-            className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:bg-white/5 transition-colors"
+            className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-colors"
             aria-label="Tutup menu"
           >
             <X className="w-5 h-5" />
@@ -86,7 +86,7 @@ export default function AdminNav() {
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
           {links.map(({ href, label, icon: Icon }) => {
             const active = href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
             return (
@@ -94,14 +94,14 @@ export default function AdminNav() {
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-[15px] font-bold
                   transition-all duration-150
                   ${active
-                    ? 'bg-amber-gradient text-white shadow-amber'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-amber-50 text-amber-600'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                   }`}
               >
-                <Icon className="w-5 h-5 shrink-0" />
+                <Icon className={`w-5 h-5 shrink-0 ${active ? 'text-amber-500' : 'text-gray-400'}`} strokeWidth={active ? 2.5 : 2} />
                 {label}
               </Link>
             )
@@ -109,23 +109,23 @@ export default function AdminNav() {
         </nav>
 
         {/* Bawah: Lihat Kiosk + Logout */}
-        <div className="px-3 py-4 border-t border-white/5 space-y-1 shrink-0">
+        <div className="px-4 py-6 border-t border-gray-100 space-y-2 shrink-0">
           <Link
             href="/"
             target="_blank"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
-              text-gray-500 hover:text-gray-200 hover:bg-white/5 transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl text-[15px] font-bold
+              text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
           >
-            <Sandwich className="w-5 h-5 shrink-0" />
+            <Sandwich className="w-5 h-5 shrink-0 text-gray-400" strokeWidth={2} />
             Lihat Kiosk
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold
-              text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[15px] font-bold
+              text-red-500 hover:bg-red-50 transition-colors"
           >
-            <LogOut className="w-5 h-5 shrink-0" />
+            <LogOut className="w-5 h-5 shrink-0" strokeWidth={2} />
             Keluar
           </button>
         </div>

@@ -19,45 +19,38 @@ export default function MenuItem({ item }: Props) {
   
   const itemCartItems = items.filter((i) => i.item.id === item.id)
   const totalQuantity = itemCartItems.reduce((acc, curr) => acc + curr.quantity, 0)
-  const noNoteCartItem = itemCartItems.find((i) => !i.note)
-  const quantity = noNoteCartItem?.quantity ?? 0
 
   const showPlaceholder = !item.image_url || imgError
 
   return (
     <div
       onClick={() => router.push(`/menu/${item.id}`)}
-      className={`group bg-white rounded-3xl overflow-hidden border border-gray-100
-        shadow-card hover:shadow-card-hover hover:-translate-y-1
-        transition-all duration-250 flex flex-col cursor-pointer
+      className={`group bg-white rounded-2xl overflow-hidden border border-gray-100
+        shadow-card hover:shadow-card-hover hover:-translate-y-0.5
+        transition-all duration-200 flex flex-col cursor-pointer
         ${!item.is_available ? 'opacity-55 !cursor-not-allowed' : ''}`}
     >
       {/* Image */}
-      <div className="relative h-44 bg-gradient-to-br from-amber-50 via-amber-100 to-orange-100 overflow-hidden flex-shrink-0">
+      <div className="relative aspect-[4/3] bg-amber-50/60 overflow-hidden flex-shrink-0">
         {!showPlaceholder ? (
           <Image
             src={item.image_url!}
             alt={item.name}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             onError={() => setImgError(true)}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Sandwich className="w-16 h-16 text-amber-200" strokeWidth={1} />
+            <Sandwich className="w-14 h-14 text-amber-200" strokeWidth={1} />
           </div>
-        )}
-
-        {/* Gradient overlay at bottom */}
-        {!showPlaceholder && (
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent" />
         )}
 
         {/* "Habis" overlay */}
         {!item.is_available && (
-          <div className="absolute inset-0 bg-gray-900/40 flex items-center justify-center backdrop-blur-[1px]">
-            <span className="bg-white/90 text-gray-700 text-xs font-bold px-4 py-1.5 rounded-full tracking-widest uppercase shadow">
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
+            <span className="bg-white text-gray-600 text-[11px] font-semibold px-3 py-1 rounded-full tracking-wide uppercase border border-gray-200">
               Habis
             </span>
           </div>
@@ -65,15 +58,15 @@ export default function MenuItem({ item }: Props) {
 
         {/* Quantity badge (when in cart) */}
         {totalQuantity > 0 && (
-          <div className="absolute top-2.5 right-2.5 w-6 h-6 bg-amber-500 text-white text-xs font-extrabold rounded-full flex items-center justify-center shadow-lg animate-scale-in">
+          <div className="absolute top-2.5 right-2.5 min-w-6 h-6 px-1.5 bg-amber-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-sm animate-scale-in">
             {totalQuantity}
           </div>
         )}
       </div>
 
       {/* Content */}
-      <div className="p-3 sm:p-4 flex flex-col flex-1">
-        <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-1">
+      <div className="p-3.5 sm:p-4 flex flex-col flex-1">
+        <h3 className="font-semibold text-gray-900 text-sm sm:text-[15px] leading-snug line-clamp-2">
           {item.name}
         </h3>
         {item.description && (
@@ -82,59 +75,11 @@ export default function MenuItem({ item }: Props) {
           </p>
         )}
 
-        {/* Price + Controls */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
-          <div>
-            <span className="font-extrabold text-amber-600 text-sm sm:text-base leading-none">
-              {formatRupiah(item.price)}
-            </span>
-          </div>
-
-          {item.is_available && (
-            quantity === 0 ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  addItem(item)
-                }}
-                aria-label={`Tambah ${item.name}`}
-                className="w-8 h-8 sm:w-9 sm:h-9 bg-amber-gradient text-white rounded-2xl flex items-center justify-center
-                  shadow-amber hover:brightness-110 active:scale-95 transition-all duration-150"
-              >
-                <Plus className="w-4 h-4" strokeWidth={2.5} />
-              </button>
-            ) : (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (noNoteCartItem) {
-                      updateQuantity(noNoteCartItem.cartItemId, quantity - 1)
-                    }
-                  }}
-                  className="w-6 h-6 sm:w-7 sm:h-7 bg-amber-100 hover:bg-amber-200 text-amber-700
-                    rounded-xl flex items-center justify-center transition-colors"
-                  aria-label="Kurangi"
-                >
-                  <Minus className="w-3 sm:w-3.5 h-3 sm:h-3.5" strokeWidth={2.5} />
-                </button>
-                <span className="w-5 sm:w-6 text-center font-extrabold text-gray-900 text-xs sm:text-sm tabular-nums">
-                  {quantity}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    addItem(item)
-                  }}
-                  className="w-6 h-6 sm:w-7 sm:h-7 bg-amber-gradient text-white rounded-xl
-                    flex items-center justify-center transition-all hover:brightness-110"
-                  aria-label="Tambah"
-                >
-                  <Plus className="w-3 sm:w-3.5 h-3 sm:h-3.5" strokeWidth={2.5} />
-                </button>
-              </div>
-            )
-          )}
+        {/* Price */}
+        <div className="mt-3 flex items-center justify-between">
+          <span className="font-bold text-amber-600 text-base tracking-tight leading-none">
+            {formatRupiah(item.price)}
+          </span>
         </div>
       </div>
     </div>

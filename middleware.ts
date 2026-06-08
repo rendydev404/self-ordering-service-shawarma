@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: any[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -25,28 +25,56 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
-  const isLoginPage = request.nextUrl.pathname === '/admin/login'
-
-  // Redirect ke login jika belum auth dan akses halaman admin
-  if (isAdminRoute && !isLoginPage && !user) {
-    const loginUrl = new URL('/admin/login', request.url)
-    return NextResponse.redirect(loginUrl)
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  let role = null
+  let outlet_id = null
+  
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, outlet_id')
+      .eq('id', user.id)
+      .single()
+      
+    if (profile) {
+      role = profile.role
+      outlet_id = profile.outlet_id
+    }
   }
 
-  // Redirect ke dashboard jika sudah login tapi buka halaman login
-  if (isLoginPage && user) {
-    const dashboardUrl = new URL('/admin', request.url)
-    return NextResponse.redirect(dashboardUrl)
+  const path = request.nextUrl.pathname
+
+  // Proteksi Route Admin
+  if (path.startsWith('/admin')) {
+    if (!user || role !== 'admin') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
+  // Proteksi Route Kasir
+  if (path.startsWith('/kasir')) {
+    if (!user || role !== 'kasir') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
+  // Redirect halaman login jika sudah auth
+  if (path === '/login' && user && role) {
+    if (role === 'admin') return NextResponse.redirect(new URL('/admin', request.url))
+    if (role === 'kasir') return NextResponse.redirect(new URL('/kasir', request.url))
+    if (role === 'kiosk') return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  // Inject session data untuk digunakan di App (khususnya untuk Kiosk)
+  // Ini membantu Kiosk UI tahu dia ada di outlet mana
+  if (role === 'kiosk' && outlet_id) {
+    supabaseResponse.headers.set('x-outlet-id', outlet_id)
   }
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/kasir/:path*', '/login'],
 }

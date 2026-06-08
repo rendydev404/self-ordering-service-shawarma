@@ -4,39 +4,46 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { UploadCloud, Loader2, CheckCircle2, AlertCircle, ImagePlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useMyOutlet } from '@/lib/useMyOutlet'
 
 const BUCKET = 'kiosk-assets'
 const COVER_KEY = 'cover_image_url'
 
-export default function SettingsPage() {
+export default function KasirSettingsPage() {
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const { outletId, loaded } = useMyOutlet()
 
   useEffect(() => {
     async function load() {
+      if (!loaded || !outletId) return
+
       try {
         const supabase = createClient()
         const { data, error } = await supabase
           .from('kiosk_settings')
-          .select('value')
-          .eq('key', COVER_KEY)
-          .single()
+          .select('key, value')
+          .eq('outlet_id', outletId)
+          .in('key', [COVER_KEY])
+        
         if (error) throw error
-        setCoverUrl(data?.value ?? null)
+        
+        const coverObj = data?.find(d => d.key === COVER_KEY)
+        if (coverObj) setCoverUrl(coverObj.value)
       } catch (err: unknown) {
-        console.warn('Gagal memuat gambar cover:', err)
+        console.warn('Gagal memuat pengaturan:', err)
         setCoverUrl(null)
       }
     }
     load()
-  }, [])
+  }, [outletId, loaded])
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !outletId) return
 
     setUploading(true)
     setError(null)
@@ -50,7 +57,7 @@ export default function SettingsPage() {
         setUploading(false)
         return
       }
-      const path = `cover.${ext}`
+      const path = `cover_${outletId}_${Date.now()}.${ext}`
 
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
@@ -68,7 +75,7 @@ export default function SettingsPage() {
 
       const { error: dbError } = await supabase
         .from('kiosk_settings')
-        .upsert({ key: COVER_KEY, value: publicUrl })
+        .upsert({ outlet_id: outletId, key: COVER_KEY, value: publicUrl }, { onConflict: 'outlet_id, key' })
 
       if (dbError) throw dbError
 
@@ -83,15 +90,18 @@ export default function SettingsPage() {
     }
   }
 
+  if (!loaded) return <div className="p-6"><Loader2 className="w-6 h-6 animate-spin text-amber-500" /></div>
+  if (!outletId) return <div className="p-6 text-red-500 font-bold">Outlet tidak ditemukan</div>
+
   return (
     <div className="max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Pengaturan Kiosk</h1>
-        <p className="text-gray-500 text-sm mt-1">Kelola tampilan attract screen</p>
+        <h1 className="text-2xl font-bold text-gray-900">Tampilan Layar Kiosk</h1>
+        <p className="text-gray-500 text-sm mt-1">Kelola gambar yang tampil saat kiosk sedang istirahat (attract screen)</p>
       </div>
 
       <div className="card p-6 space-y-4">
-        <h2 className="font-semibold text-gray-700">Gambar Cover Screen</h2>
+        <h2 className="font-semibold text-gray-700">Gambar Cover Cabang Ini</h2>
 
         {/* Preview */}
         <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
@@ -154,7 +164,7 @@ export default function SettingsPage() {
         )}
 
         <p className="text-xs text-gray-400">
-          Format yang didukung: JPG, PNG, WebP. Gambar akan ditampilkan fullscreen di kiosk.
+          Format yang didukung: JPG, PNG, WebP. Gambar akan ditampilkan fullscreen di kiosk cabang ini.
           Rekomendasi rasio 16:9.
         </p>
       </div>

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import KioskPresenceMount from '@/components/KioskPresenceMount'
+import GlobalBlockerMount from '@/components/GlobalBlockerMount'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,7 +18,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={inter.variable}>
-      <body>{children}</body>
+      <body>
+        <KioskPresenceMount />
+        <GlobalBlockerMount />
+        {children}
+      </body>
     </html>
   )
 }

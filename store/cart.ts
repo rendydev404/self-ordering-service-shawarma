@@ -7,7 +7,7 @@ import type { MenuItem, CartItem } from '@/types'
 interface CartStore {
   items: CartItem[]
   isOpen: boolean
-  addItem: (item: MenuItem, quantity?: number, note?: string) => void
+  addItem: (item: MenuItem, quantity?: number, note?: string, parentId?: string) => string
   removeItem: (cartItemId: string) => void
   updateQuantity: (cartItemId: string, quantity: number) => void
   clearCart: () => void
@@ -23,12 +23,14 @@ export const useCart = create<CartStore>()(
       items: [],
       isOpen: false,
 
-      addItem: (item, quantity = 1, note = '') =>
+      addItem: (item, quantity = 1, note = '', parentId = undefined) => {
+        let newCartItemId = ''
         set((state) => {
           const existingIndex = state.items.findIndex(
-            (i) => i.item.id === item.id && (i.note || '') === note
+            (i) => i.item.id === item.id && (i.note || '') === note && i.parentId === parentId
           )
           if (existingIndex >= 0) {
+            newCartItemId = state.items[existingIndex].cartItemId
             const newItems = [...state.items]
             newItems[existingIndex] = {
               ...newItems[existingIndex],
@@ -36,13 +38,16 @@ export const useCart = create<CartStore>()(
             }
             return { items: newItems }
           }
+          newCartItemId = crypto.randomUUID()
           return {
             items: [
               ...state.items,
-              { cartItemId: crypto.randomUUID(), item, quantity, note },
+              { cartItemId: newCartItemId, item, quantity, note, parentId },
             ],
           }
-        }),
+        })
+        return newCartItemId
+      },
 
       removeItem: (cartItemId) =>
         set((state) => ({

@@ -58,10 +58,12 @@ export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart()
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [loading, setLoading]             = useState(false)
+  const [isSuccess, setIsSuccess]         = useState(false)
   const [error, setError]                 = useState('')
   const total = totalPrice()
+  const rootItems = items.filter(i => !i.parentId)
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isSuccess) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-5 bg-[#FFFBF5] px-4">
         <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center">
@@ -87,12 +89,24 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           payment_method: paymentMethod,
-          items: items.map(({ item, quantity, note }) => ({ menu_item_id: item.id, quantity, note: note?.trim() })),
+          items: items.map(({ cartItemId, parentId, item, quantity, note }) => ({ 
+            cartItemId, 
+            parentId, 
+            menu_item_id: item.id, 
+            quantity, 
+            note: note?.trim() 
+          })),
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Terjadi kesalahan, coba lagi.'); return }
-      clearCart()
+      if (!res.ok) { setError(data.error ?? 'Terjadi kesalahan, coba lagi.'); setLoading(false); return }
+      
+      setIsSuccess(true)
+      // Delay clearCart to prevent UI flicker while router navigates
+      setTimeout(() => {
+        clearCart()
+      }, 1000)
+
       if (paymentMethod === 'qris') {
         router.push(`/payment/qris?id=${data.order_id}&number=${data.order_number}&total=${data.total_amount}`)
       } else {
@@ -100,7 +114,6 @@ export default function CheckoutPage() {
       }
     } catch {
       setError('Tidak dapat terhubung ke server. Periksa koneksimu.')
-    } finally {
       setLoading(false)
     }
   }
@@ -139,20 +152,65 @@ export default function CheckoutPage() {
             </div>
 
             <div className="space-y-3">
-              {items.map(({ item, quantity }) => (
-                <div key={item.id} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-6 h-6 bg-amber-50 text-amber-600 text-xs font-bold
-                      rounded-lg flex items-center justify-center flex-shrink-0">
-                      {quantity}
-                    </span>
-                    <p className="text-gray-700 text-sm font-medium truncate">{item.name}</p>
+              {rootItems.map((root) => {
+                const children = items.filter(i => i.parentId === root.cartItemId)
+                return (
+                  <div key={root.cartItemId} className="flex flex-col gap-2 border-b border-gray-50/50 pb-3 last:border-0 last:pb-0">
+                    {/* Root Item */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <span className="w-6 h-6 bg-amber-50 text-amber-600 text-xs font-bold
+                          rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                          {root.quantity}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-gray-900 text-[15px] font-bold leading-tight">{root.item.name}</p>
+                          {root.note && (
+                            <div className="mt-1.5 inline-flex bg-gray-50/80 border border-gray-100 px-2.5 py-1.5 rounded-lg max-w-full">
+                              <p className="text-gray-500 text-xs leading-relaxed truncate whitespace-normal line-clamp-2">
+                                <span className="font-semibold text-gray-700">Catatan:</span> {root.note}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-gray-900 text-[15px] font-black flex-shrink-0 mt-0.5">
+                        {formatRupiah(root.item.price * root.quantity)}
+                      </span>
+                    </div>
+
+                    {/* Children */}
+                    {children.length > 0 && (
+                      <div className="mt-1 space-y-2 pl-3 ml-3 border-l-2 border-gray-200 relative">
+                        {children.map(child => (
+                          <div key={child.cartItemId} className="relative flex items-start justify-between gap-3">
+                            {/* Branch indicator */}
+                            <div className="absolute -left-3 top-2.5 w-3 h-0.5 bg-gray-200" />
+                            
+                            <div className="flex items-start gap-2 min-w-0 flex-1">
+                              <span className="w-5 h-5 bg-gray-50 text-gray-500 text-[10px] font-bold
+                                rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
+                                {child.quantity}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-gray-600 text-sm font-semibold leading-tight">{child.item.name}</p>
+                                {child.note && (
+                                  <p className="text-gray-400 text-[11px] mt-0.5 italic truncate">
+                                    {child.note}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <span className="text-gray-600 text-sm font-bold flex-shrink-0 mt-0.5">
+                              {formatRupiah(child.item.price * child.quantity)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <span className="text-gray-900 text-sm font-semibold flex-shrink-0">
-                    {formatRupiah(item.price * quantity)}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-100">
@@ -162,7 +220,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between items-center mt-2">
                 <span className="font-bold text-gray-900">Total Pembayaran</span>
-                <span className="font-extrabold text-2xl text-amber-600">{formatRupiah(total)}</span>
+                <span className="font-bold text-2xl text-amber-600">{formatRupiah(total)}</span>
               </div>
             </div>
           </div>

@@ -68,12 +68,12 @@ export default function RecommendationStrip({ productId, cartIds, title = 'Serin
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-gray-900 leading-snug line-clamp-1">{item.name}</p>
-                <span className="text-amber-600 font-extrabold text-xs">{formatRupiah(item.price)}</span>
+                <span className="text-amber-600 font-bold text-xs">{formatRupiah(item.price)}</span>
               </div>
               <button
                 onClick={() => addItem(item)}
                 aria-label={`Tambah ${item.name}`}
-                className="w-8 h-8 bg-amber-gradient text-white rounded-xl flex items-center justify-center shadow-amber hover:brightness-110 active:scale-95 transition-all flex-shrink-0"
+                className="w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-sm hover:bg-amber-600 active:scale-95 transition-all flex-shrink-0"
               >
                 <Plus className="w-4 h-4" strokeWidth={2.5} />
               </button>
@@ -106,11 +106,11 @@ export default function RecommendationStrip({ productId, cartIds, title = 'Serin
             <div className="p-2.5">
               <p className="text-xs font-bold text-gray-900 leading-snug line-clamp-1">{item.name}</p>
               <div className="mt-1.5 flex items-center justify-between gap-1">
-                <span className="text-amber-600 font-extrabold text-xs">{formatRupiah(item.price)}</span>
+                <span className="text-amber-600 font-bold text-xs">{formatRupiah(item.price)}</span>
                 <button
                   onClick={() => addItem(item)}
                   aria-label={`Tambah ${item.name}`}
-                  className="w-7 h-7 bg-amber-gradient text-white rounded-xl flex items-center justify-center shadow-amber hover:brightness-110 active:scale-95 transition-all"
+                  className="w-7 h-7 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-sm hover:bg-amber-600 active:scale-95 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
                 </button>
