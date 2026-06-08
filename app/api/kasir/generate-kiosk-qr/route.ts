@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     // Cari user kiosk di outlet yang sama
     const { data: kioskProfile } = await supabaseService
       .from('profiles')
-      .select('username')
+      .select('id, username')
       .eq('role', 'kiosk')
       .eq('outlet_id', profile.outlet_id)
       .eq('is_active', true)
@@ -44,30 +44,26 @@ export async function POST(request: Request) {
       }, { status: 404 })
     }
 
-    // Reconstruct the email defined in /api/users creation
-    const email = `${kioskProfile.username}@outlet.local`
-
     const requestUrl = new URL(request.url)
     const origin = process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin || 'https://shawarma-order.vercel.app'
 
-    // Generate magic link via Supabase Admin API
-    const { data, error } = await supabaseService.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-      options: {
-        redirectTo: `${origin}/`
-      }
-    })
+    // ARSITEKTUR BARU: Auto-Login Tahan Banting (Anti-Supabase Config Error)
+    // 1. Generate password acak yang kuat
+    const newPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10)
 
-    if (error || !data.properties?.action_link) {
-      console.error('Error generating magic link:', error)
-      return NextResponse.json({ error: 'Gagal membuat tautan otomatis.' }, { status: 500 })
+    // 2. Ubah password akun kiosk tersebut (tidak mengganggu Kiosk lain yang sudah login)
+    const { error: updateError } = await supabaseService.auth.admin.updateUserById(
+      kioskProfile.id,
+      { password: newPassword }
+    )
+
+    if (updateError) {
+      console.error('Error updating kiosk password:', updateError)
+      return NextResponse.json({ error: 'Gagal membuat akses baru untuk Kiosk.' }, { status: 500 })
     }
 
-    // Supabase kadang mengembalikan action_link dengan localhost jika Site URL belum diubah di dashboard Supabase.
-    // Kita pastikan link-nya selalu mengarah ke domain aplikasi yang sedang berjalan (production).
-    let actionLink = data.properties.action_link
-    actionLink = actionLink.replace('http://localhost:3000', origin)
+    // 3. Buat action_link yang mengarah langsung ke halaman Auth QR kita sendiri
+    const actionLink = `${origin}/kiosk/qr-login?u=${encodeURIComponent(kioskProfile.username)}&p=${encodeURIComponent(newPassword)}`
 
     return NextResponse.json({ action_link: actionLink })
     
