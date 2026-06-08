@@ -47,10 +47,16 @@ export async function POST(request: Request) {
     // Reconstruct the email defined in /api/users creation
     const email = `${kioskProfile.username}@outlet.local`
 
+    const requestUrl = new URL(request.url)
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin || 'https://shawarma-order.vercel.app'
+
     // Generate magic link via Supabase Admin API
     const { data, error } = await supabaseService.auth.admin.generateLink({
       type: 'magiclink',
       email: email,
+      options: {
+        redirectTo: `${origin}/`
+      }
     })
 
     if (error || !data.properties?.action_link) {
@@ -58,7 +64,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Gagal membuat tautan otomatis.' }, { status: 500 })
     }
 
-    return NextResponse.json({ action_link: data.properties.action_link })
+    // Supabase kadang mengembalikan action_link dengan localhost jika Site URL belum diubah di dashboard Supabase.
+    // Kita pastikan link-nya selalu mengarah ke domain aplikasi yang sedang berjalan (production).
+    let actionLink = data.properties.action_link
+    actionLink = actionLink.replace('http://localhost:3000', origin)
+
+    return NextResponse.json({ action_link: actionLink })
     
   } catch (err: any) {
     console.error('API Error:', err)
