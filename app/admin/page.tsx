@@ -470,16 +470,16 @@ export default function AdminOverviewPage() {
 
                     return (
                       <div key={idx} className="relative py-1.5">
-                        <div className="flex justify-between items-end mb-1.5 gap-2">
-                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1.5 gap-3">
+                          <div className="flex items-center gap-2.5 flex-1">
                             {/* Rank Indicator Minimalist */}
                             <div className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-black shrink-0 ${isTop3 ? 'text-orange-500 bg-orange-50' : 'text-gray-400 bg-gray-50'}`}>
                               {idx + 1}
                             </div>
                             
                             {/* Name & Fire Icon */}
-                            <div className="flex items-center gap-1.5 truncate">
-                              <span className="text-sm font-bold text-gray-800 truncate">
+                            <div className="flex flex-wrap items-center gap-1.5 flex-1">
+                              <span className="text-sm font-bold text-gray-800 leading-tight">
                                 {branch.name}
                               </span>
                               {isTop3 && (
