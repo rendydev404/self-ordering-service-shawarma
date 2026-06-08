@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
-import { Monitor, LogOut, Power, Loader2, Wifi, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
+import { Monitor, LogOut, Power, Loader2, Wifi, CheckCircle2, AlertCircle, RefreshCw, QrCode, X } from 'lucide-react'
 
 interface KioskPresence {
   userId: string
@@ -23,6 +24,11 @@ export default function KioskControlPanel() {
   const [connected, setConnected] = useState(false)
   const [reloadKey, setReloadKey] = useState(0) // increment untuk paksa re-subscribe (tombol Refresh)
   const channelRef = useRef<RealtimeChannel | null>(null)
+
+  // State untuk fitur QR Auto Login
+  const [qrLink, setQrLink] = useState<string | null>(null)
+  const [qrLoading, setQrLoading] = useState(false)
+  const [showQrModal, setShowQrModal] = useState(false)
 
   // Ambil outlet_id kasir yang sedang login
   useEffect(() => {
@@ -107,14 +113,14 @@ export default function KioskControlPanel() {
   }
 
   function handleLogoutOne(k: KioskPresence) {
-    if (confirm(`Logout kiosk "${k.device_label}"? Tablet akan kembali ke halaman login.`)) {
+    if (confirm(`Logout kiosk "${k.device_label}"? Device akan kembali ke halaman login.`)) {
       doLogout(k.userId, k.device_label)
     }
   }
 
   function handleLogoutAll() {
     if (kiosks.length === 0) return
-    if (confirm(`Logout SEMUA ${kiosks.length} kiosk di cabang ini? Semua tablet akan kembali ke login.`)) {
+    if (confirm(`Logout SEMUA ${kiosks.length} kiosk di cabang ini? Semua device akan kembali ke login.`)) {
       doLogout('all', 'Semua kiosk')
     }
   }
@@ -142,6 +148,27 @@ export default function KioskControlPanel() {
     setReloadKey((k) => k + 1)
   }
 
+  async function handleGenerateQR() {
+    setShowQrModal(true)
+    setQrLoading(true)
+    setQrLink(null)
+    try {
+      const res = await fetch('/api/kasir/generate-kiosk-qr', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast({ type: 'error', message: data.error || 'Gagal generate QR' })
+        setShowQrModal(false)
+      } else {
+        setQrLink(data.action_link)
+      }
+    } catch {
+      showToast({ type: 'error', message: 'Gagal menghubungi server' })
+      setShowQrModal(false)
+    } finally {
+      setQrLoading(false)
+    }
+  }
+
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header */}
@@ -149,7 +176,7 @@ export default function KioskControlPanel() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Kontrol Kiosk</h1>
           <p className="text-gray-500 mt-1 text-sm sm:text-base font-medium flex items-center gap-2">
-            Tablet kiosk yang sedang aktif di cabang Anda.
+            Device kiosk yang sedang aktif di cabang Anda.
             <span className={`inline-flex items-center gap-1 text-xs font-bold ${connected ? 'text-emerald-600' : 'text-gray-400'}`}>
               <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-gray-300'}`} />
               {connected ? 'Terhubung' : 'Menghubungkan…'}
@@ -166,6 +193,13 @@ export default function KioskControlPanel() {
             <span className="hidden sm:inline">Refresh</span>
           </button>
           <button
+            onClick={handleGenerateQR}
+            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-colors"
+          >
+            <QrCode className="w-5 h-5" />
+            <span className="hidden sm:inline">Hubungkan via QR</span>
+          </button>
+          <button
             onClick={handleLogoutAll}
             disabled={kiosks.length === 0 || busy !== null}
             className="flex items-center justify-center gap-2 bg-red-500 text-white px-5 py-3 rounded-2xl font-bold hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -173,6 +207,21 @@ export default function KioskControlPanel() {
             {busy === 'all' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Power className="w-5 h-5" />}
             Logout Semua Kiosk
           </button>
+        </div>
+      </div>
+
+      {/* Guide / Tip */}
+      <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3 text-amber-800">
+        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+          <AlertCircle className="w-5 h-5 text-amber-600" />
+        </div>
+        <div className="text-sm">
+          <p className="font-bold mb-1 text-amber-900">Panduan Mengelola Banyak Kiosk</p>
+          <p className="leading-relaxed text-amber-800/90">
+            Jika ada beberapa device Kiosk yang menyala bersamaan, pastikan untuk melihat 
+            <span className="font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded mx-1">ID Kiosk (misal: Kiosk-45)</span> 
+            yang tampil di pojok kiri atas layar device pelanggan. Cocokkan ID tersebut dengan daftar di bawah ini untuk mengetahui pasti device mana yang akan Anda <i>logout</i>.
+          </p>
         </div>
       </div>
 
@@ -188,7 +237,7 @@ export default function KioskControlPanel() {
           <div className="flex flex-col items-center text-center py-10">
             <Monitor className="w-12 h-12 text-gray-200 mb-3" strokeWidth={1.5} />
             <p className="font-bold text-gray-400">Tidak ada kiosk online</p>
-            <p className="text-xs text-gray-400 mt-1">Tablet kiosk yang menyala akan muncul otomatis di sini.</p>
+            <p className="text-xs text-gray-400 mt-1">Device kiosk yang menyala akan muncul otomatis di sini.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -227,6 +276,49 @@ export default function KioskControlPanel() {
         }`}>
           {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
           {toast.message}
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-8 relative animate-fade-up flex flex-col items-center text-center">
+            <button 
+              onClick={() => setShowQrModal(false)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4">
+              <QrCode className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Scan QR untuk Login</h2>
+            <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
+              Buka aplikasi kamera di tablet Kiosk Anda dan arahkan ke kode QR ini.
+            </p>
+            
+            <div className="bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-sm mb-4">
+              {qrLoading ? (
+                <div className="w-[200px] h-[200px] flex flex-col items-center justify-center gap-3">
+                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                  <p className="text-xs text-gray-400 font-bold animate-pulse">Menghasilkan Kode...</p>
+                </div>
+              ) : qrLink ? (
+                <QRCodeSVG value={qrLink} size={200} level="Q" includeMargin={false} />
+              ) : (
+                <div className="w-[200px] h-[200px] flex items-center justify-center text-red-500 text-sm font-bold">
+                  Gagal Memuat
+                </div>
+              )}
+            </div>
+            
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="w-full py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+            >
+              Tutup
+            </button>
+          </div>
         </div>
       )}
     </div>

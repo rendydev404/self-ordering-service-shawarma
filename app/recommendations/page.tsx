@@ -184,9 +184,9 @@ export default function RecommendationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] pb-24">
+    <div className="min-h-screen bg-[#FFFBF5] pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-2xl mx-auto px-5 py-6 text-center space-y-2">
           <div className="inline-flex items-center justify-center gap-1.5 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold mb-1">
             <span className="relative flex h-2 w-2">
@@ -195,123 +195,139 @@ export default function RecommendationsPage() {
             </span>
             Penawaran Spesial Sebelum Bayar!
           </div>
-          <h1 className="text-2xl font-black text-gray-900 leading-tight tracking-tight">Sempurnakan Pesananmu!</h1>
-          <p className="text-[15px] font-medium text-gray-500">92% pelanggan setuju makanan ini bikin makin puas 🤤</p>
+          <h1 className="text-2xl font-black text-gray-900 leading-tight tracking-tight">Lengkapi Pesananmu</h1>
+          <p className="text-[15px] font-medium text-gray-500">Paling pas dinikmati bersama...</p>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {recommendations.map(u => {
-          const isSelected = !!selectedItems[u.id]
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-2 gap-4">
+          {recommendations.map((u, idx) => {
+            const isSelected = !!selectedItems[u.id]
+            const badges = ['🔥 Paling Laris', '👍 Favorit', '⭐ Pilihan Chef', '✨ Terbatas']
+            const badge = badges[idx % badges.length]
 
-          return (
-            <div
-              key={u.id}
-              className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 shadow-card
-                ${isSelected ? 'border-amber-400 bg-amber-50/40' : 'border-gray-100'}`}
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-20 bg-gray-50 rounded-2xl overflow-hidden relative flex-shrink-0 border border-gray-100/50 shadow-sm">
+            return (
+              <div
+                key={u.id}
+                className={`bg-white rounded-[1.5rem] overflow-hidden border transition-all duration-300 flex flex-col relative
+                  ${isSelected ? 'border-amber-400 shadow-lg shadow-amber-500/10 ring-2 ring-amber-400/20' : 'border-gray-100 shadow-sm hover:border-amber-200'}`}
+              >
+                {/* Image Section */}
+                <div className="relative w-full aspect-[4/3] bg-gray-50 group overflow-hidden">
                   {u.image_url ? (
-                    <Image src={u.image_url} alt={u.name} fill className="object-cover" unoptimized/>
+                    <Image src={u.image_url} alt={u.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized/>
                   ) : (
-                    <Sandwich className="w-10 h-10 m-auto mt-5 text-gray-300"/>
+                    <Sandwich className="w-12 h-12 m-auto absolute inset-0 text-gray-300" strokeWidth={1.5}/>
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-bold text-gray-900 text-[17px] leading-tight truncate">{u.name}</h3>
+                  {/* Badge */}
+                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-sm border border-white/20">
+                    <span className="text-[10px] font-extrabold text-gray-800 tracking-wide">{badge}</span>
                   </div>
-                  <p className="font-extrabold text-amber-600 mt-0.5 text-base">{formatRupiah(u.price)}</p>
-                </div>
-                <div className="flex-shrink-0 pl-2">
-                  <button 
-                    onClick={() => toggleItem(u.id)}
-                    className={`font-black px-6 py-2.5 rounded-full text-sm transition-all active:scale-95 shadow-sm
-                      ${isSelected 
-                        ? 'bg-red-50 text-red-600 border-2 border-red-100 hover:bg-red-100' 
-                        : 'bg-amber-400 text-white border-2 border-amber-400 hover:bg-amber-500 shadow-amber-400/30'}`}
-                  >
-                    {isSelected ? 'Batal' : 'Mau Ini!'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Note and Upsells if Selected */}
-              {isSelected && (
-                <div className="mt-4 pt-4 border-t border-amber-100/50 animate-fade-in space-y-4">
-                  <input
-                    type="text"
-                    value={selectedItems[u.id]?.note || ''}
-                    onChange={(e) => updateNote(u.id, e.target.value)}
-                    placeholder="Catatan (contoh: ekstra pedas, tanpa bawang...)"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[14px] text-gray-900 
-                      placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500
-                      transition-all"
-                  />
-
-                  {/* Upsells / Extras */}
-                  {upsellItems.length > 0 && (
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-sm mb-2 px-1">Extra</h4>
-                      <div className="space-y-2">
-                        {upsellItems.filter(up => up.id !== u.id).map(up => {
-                          const isUpsellSelected = !!selectedItems[u.id].upsells[up.id]
-                          return (
-                            <div key={up.id} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm">
-                              <div className="w-10 h-10 bg-gray-50 rounded-lg overflow-hidden relative flex-shrink-0">
-                                {up.image_url ? (
-                                  <Image src={up.image_url} alt={up.name} fill className="object-cover" unoptimized/>
-                                ) : (
-                                  <Sandwich className="w-5 h-5 m-auto mt-2.5 text-gray-300"/>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h5 className="font-bold text-gray-900 text-[13px] leading-tight truncate">{up.name}</h5>
-                                <p className="font-bold text-amber-600 mt-0.5 text-[12px]">{formatRupiah(up.price)}</p>
-                              </div>
-                              <div className="flex-shrink-0">
-                                {isUpsellSelected ? (
-                                  <button 
-                                    onClick={() => toggleUpsell(u.id, up.id)}
-                                    className="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-lg text-[12px] transition-colors active:scale-95"
-                                  >
-                                    Batal
-                                  </button>
-                                ) : (
-                                  <button 
-                                    onClick={() => toggleUpsell(u.id, up.id)}
-                                    className="bg-gray-50 hover:bg-gray-100 text-gray-900 font-bold px-3 py-1.5 rounded-lg text-[12px] transition-colors active:scale-95"
-                                  >
-                                    Tambah
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
+                  {/* Selected Overlay */}
+                  {isSelected && (
+                    <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex items-center justify-center animate-fade-in z-10">
+                      <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-amber-500/30">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                       </div>
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          )
-        })}
+
+                {/* Content Section */}
+                <div className="p-4 flex flex-col flex-1">
+                  <h3 className="font-bold text-gray-900 text-[14px] sm:text-[15px] leading-snug line-clamp-2 min-h-[42px]">{u.name}</h3>
+                  <p className="font-black text-amber-600 mt-1 mb-4 text-[15px]">{formatRupiah(u.price)}</p>
+                  
+                  <div className="mt-auto space-y-3">
+                    <button 
+                      onClick={() => toggleItem(u.id)}
+                      className={`w-full font-bold py-3 rounded-xl text-[14px] transition-all active:scale-[0.98] flex items-center justify-center gap-1.5
+                        ${isSelected 
+                          ? 'bg-amber-50 text-amber-600 border border-amber-200' 
+                          : 'bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20'}`}
+                    >
+                      {isSelected ? 'Batal' : '+ Tambah'}
+                    </button>
+
+                    {/* Note and Upsells if Selected */}
+                    {isSelected && (
+                      <div className="pt-3 border-t border-amber-100/50 animate-fade-in space-y-3">
+                        <input
+                          type="text"
+                          value={selectedItems[u.id]?.note || ''}
+                          onChange={(e) => updateNote(u.id, e.target.value)}
+                          placeholder="Catatan (opsional)"
+                          className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-[12px] text-gray-900 
+                            placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500
+                            transition-all"
+                        />
+
+                        {/* Upsells / Extras */}
+                        {upsellItems.length > 0 && (
+                          <div>
+                            <h4 className="font-bold text-gray-900 text-[11px] mb-1.5 px-1 uppercase tracking-wider text-amber-600/80">Ekstra</h4>
+                            <div className="space-y-1.5">
+                              {upsellItems.filter(up => up.id !== u.id).map(up => {
+                                const isUpsellSelected = !!selectedItems[u.id].upsells[up.id]
+                                return (
+                                  <div key={up.id} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
+                                    <div className="w-8 h-8 bg-gray-50 rounded-lg overflow-hidden relative flex-shrink-0">
+                                      {up.image_url ? (
+                                        <Image src={up.image_url} alt={up.name} fill className="object-cover" unoptimized/>
+                                      ) : (
+                                        <Sandwich className="w-4 h-4 m-auto mt-2 text-gray-300"/>
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h5 className="font-bold text-gray-900 text-[11px] leading-tight truncate">{up.name}</h5>
+                                      <p className="font-bold text-amber-600 mt-0.5 text-[10px]">{formatRupiah(up.price)}</p>
+                                    </div>
+                                    <div className="flex-shrink-0">
+                                      {isUpsellSelected ? (
+                                        <button 
+                                          onClick={() => toggleUpsell(u.id, up.id)}
+                                          className="bg-amber-100 text-amber-700 font-bold px-2.5 py-1 rounded-lg text-[10px] transition-colors active:scale-95"
+                                        >
+                                          Batal
+                                        </button>
+                                      ) : (
+                                        <button 
+                                          onClick={() => toggleUpsell(u.id, up.id)}
+                                          className="bg-gray-50 hover:bg-gray-100 text-gray-900 font-bold px-2.5 py-1 rounded-lg text-[10px] transition-colors active:scale-95"
+                                        >
+                                          +
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-4 py-5 pb-8 sm:pb-5 z-20">
-        <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
+      <div className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] px-4 py-4 pb-8 sm:pb-4 z-20">
+        <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
           <button 
             onClick={handleNoThanks} 
-            className="w-full sm:w-1/3 bg-transparent text-gray-400 hover:text-gray-600 hover:underline font-semibold py-4 transition-all active:scale-[0.98]"
+            className="w-full sm:w-auto order-2 sm:order-1 px-4 py-3 bg-transparent text-gray-400 hover:text-gray-600 text-sm font-semibold transition-all active:scale-[0.98]"
           >
             Nggak, makasih
           </button>
           <button 
             onClick={handleContinue} 
-            className="w-full sm:w-2/3 bg-amber-500 hover:bg-amber-600 text-white font-bold text-base py-4 rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            className="w-full sm:flex-1 order-1 sm:order-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-base py-4 rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
           >
             Lanjut ke Pembayaran
             <ArrowRight className="w-5 h-5" />

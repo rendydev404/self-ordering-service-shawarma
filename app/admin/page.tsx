@@ -191,7 +191,6 @@ export default function AdminOverviewPage() {
     }
   }, [orders, outlets])
 
-  // Derived Chart Data
   const chartData = useMemo(() => {
     const dailyMap: Record<string, number> = {}
     chartOrders.forEach(o => {
@@ -199,12 +198,26 @@ export default function AdminOverviewPage() {
       dailyMap[dateKey] = (dailyMap[dateKey] || 0) + o.total_amount
     })
     
-    return Object.entries(dailyMap)
+    const dataList = Object.entries(dailyMap)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, revenue]) => ({
         date: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-        revenue
+        revenue,
+        _rawDate: date
       }))
+
+    // Fix for AreaChart: it needs at least 2 points to draw a line/area.
+    if (dataList.length === 1) {
+      const d = new Date(dataList[0]._rawDate)
+      d.setDate(d.getDate() - 1)
+      dataList.unshift({
+        date: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+        revenue: 0,
+        _rawDate: ''
+      })
+    }
+    
+    return dataList
   }, [chartOrders])
 
   const selectedOutletName = selectedOutlet === 'all' 
@@ -392,8 +405,8 @@ export default function AdminOverviewPage() {
                   Belum ada data untuk ditampilkan
                 </div>
               ) : (
-                <div className="h-72 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-72 w-full" style={{ minHeight: 288 }}>
+                  <ResponsiveContainer width="100%" height={288}>
                     <AreaChart
                       data={chartData}
                       margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

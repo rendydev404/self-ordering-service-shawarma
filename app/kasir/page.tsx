@@ -278,59 +278,56 @@ export default function CashierOrdersPage() {
               {(() => {
                 const { rootItems, childrenMap } = getGroupedItems(order.order_items)
                 return rootItems.map((oi) => (
-                  <div key={oi.id} className="py-1">
+                  <div key={oi.id} className="py-2 relative">
+                    {/* Vertical line connecting to children/notes */}
+                    {(oi.parsedNote || (childrenMap[oi.parsedId] && childrenMap[oi.parsedId].length > 0)) && (
+                      <div className="absolute left-[9px] top-6 bottom-4 w-[2px] bg-gray-200" />
+                    )}
+
+                    {/* Parent Row */}
                     <div className="flex justify-between text-sm items-start gap-2">
                       <div className="text-gray-700 flex items-start gap-2.5 min-w-0 flex-1">
-                        <span className={`w-5 h-5 text-[10px] font-bold rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${isPreparing ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                        <span className={`w-5 h-5 text-[10px] font-bold rounded-md flex items-center justify-center flex-shrink-0 relative z-10 ${isPreparing ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
                           {oi.quantity}
                         </span>
-                        <div className="min-w-0 flex-1">
-                          <span className="leading-snug font-semibold break-words">{oi.parsedName}</span>
-                          {oi.parsedNote && (
-                            <div className="flex items-start gap-1.5 mt-1.5 mb-1">
-                              <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-                              <div className={`text-[11px] px-2 py-1 rounded-md font-semibold leading-snug border break-words whitespace-pre-wrap min-w-0 flex-1 ${isPreparing ? 'bg-blue-50/80 border-blue-100 text-blue-800' : 'bg-amber-50/80 border-amber-100 text-amber-800'}`}>
-                                {oi.parsedNote}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        <span className="leading-snug font-semibold break-words min-w-0 flex-1">{oi.parsedName}</span>
                       </div>
                       <span className="font-semibold text-gray-900 flex-shrink-0">{formatRupiah(oi.subtotal)}</span>
                     </div>
-                    
-                    {/* Children / Extras */}
-                    {childrenMap[oi.parsedId] && childrenMap[oi.parsedId].length > 0 && (
-                      <div className="mt-0 pt-1 space-y-1.5 pl-3 ml-2.5 border-l-2 border-gray-200 relative">
-                        {/* Connecting top border to parent */}
-                        <div className="absolute -top-3 left-[-3px] w-0.5 h-3 bg-gray-200" />
-                        
-                        {childrenMap[oi.parsedId].map((child: any) => (
-                          <div key={child.id} className="relative flex justify-between text-sm items-start pl-3 py-0.5 gap-2">
-                            {/* Branch indicator */}
-                            <div className="absolute -left-[3px] top-3 w-3 h-0.5 bg-gray-200" />
-                            <div className="text-gray-600 flex items-start gap-2 min-w-0 flex-1">
-                              <span className="w-4 text-[10px] font-bold text-center mt-0.5 shrink-0">{child.quantity}x</span>
-                              <div className="min-w-0 flex-1">
-                                <div className="leading-snug font-medium flex items-center gap-1.5 flex-wrap">
-                                  <span className={`text-[9px] font-bold uppercase px-1 rounded-sm ${isPreparing ? 'bg-blue-200 text-blue-700' : 'bg-amber-200 text-amber-800'}`}>Extra</span>
-                                  <span className="break-words min-w-0">{child.parsedName}</span>
-                                </div>
-                                {child.parsedNote && (
-                                  <div className="flex items-start gap-1.5 mt-1">
-                                    <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-                                    <div className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold leading-snug border break-words whitespace-pre-wrap min-w-0 flex-1 ${isPreparing ? 'bg-blue-50/80 border-blue-100 text-blue-800' : 'bg-amber-50/80 border-amber-100 text-amber-800'}`}>
-                                      {child.parsedNote}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <span className="font-medium text-gray-500 flex-shrink-0 text-[13px]">{formatRupiah(child.subtotal)}</span>
-                          </div>
-                        ))}
+
+                    {/* Parent Note */}
+                    {oi.parsedNote && (
+                      <div className="relative pl-[1.6rem] mt-1.5 mb-1.5 flex items-start">
+                        <div className="absolute left-[9px] top-2.5 w-3 h-[2px] bg-gray-200" />
+                        <div className={`text-[11px] px-2 py-1 rounded-md font-semibold leading-snug border break-words whitespace-pre-wrap min-w-0 flex-1 ${isPreparing ? 'bg-blue-50/80 border-blue-100 text-blue-800' : 'bg-amber-50/80 border-amber-100 text-amber-800'}`}>
+                          {oi.parsedNote}
+                        </div>
                       </div>
                     )}
+
+                    {/* Children / Extras */}
+                    {childrenMap[oi.parsedId] && childrenMap[oi.parsedId].map((child: any) => (
+                      <div key={child.id} className="relative pl-[1.6rem] py-1 flex justify-between text-sm items-start gap-2">
+                        <div className="absolute left-[9px] top-3 w-3 h-[2px] bg-gray-200" />
+                        <div className="text-gray-600 flex items-start gap-2 min-w-0 flex-1">
+                          <span className="w-4 text-[10px] font-bold text-center mt-0.5 shrink-0">{child.quantity}x</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="leading-snug font-medium flex items-center gap-1.5 flex-wrap">
+                              <span className={`text-[9px] font-bold uppercase px-1 rounded-sm ${isPreparing ? 'bg-blue-200 text-blue-700' : 'bg-amber-200 text-amber-800'}`}>Extra</span>
+                              <span className="break-words min-w-0">{child.parsedName}</span>
+                            </div>
+                            {child.parsedNote && (
+                              <div className="mt-1 flex items-start">
+                                <div className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold leading-snug border break-words whitespace-pre-wrap min-w-0 flex-1 relative ${isPreparing ? 'bg-blue-50/80 border-blue-100 text-blue-800' : 'bg-amber-50/80 border-amber-100 text-amber-800'}`}>
+                                  {child.parsedNote}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className="font-medium text-gray-500 flex-shrink-0 text-[13px]">{formatRupiah(child.subtotal)}</span>
+                      </div>
+                    ))}
                   </div>
                 ))
               })()}
@@ -534,49 +531,50 @@ export default function CashierOrdersPage() {
                       })
 
                       return rootItems.map((oi) => (
-                        <div key={oi.id} className="py-1">
-                          <div className="flex items-start gap-2">
-                            <span className="font-bold text-gray-900 text-sm w-4 shrink-0 text-right">{oi.quantity}x</span>
+                        <div key={oi.id} className="py-2 relative">
+                          {/* Vertical Line */}
+                          {(oi.parsedNote || (childrenMap[oi.parsedId] && childrenMap[oi.parsedId].length > 0)) && (
+                            <div className="absolute left-[11px] top-6 bottom-4 w-[2px] bg-gray-200" />
+                          )}
+
+                          {/* Parent Row */}
+                          <div className="flex items-start gap-2 relative z-10">
+                            <span className="font-bold text-gray-900 text-sm w-6 shrink-0 text-center bg-white">{oi.quantity}x</span>
                             <div className="min-w-0 flex-1">
                               <span className="text-sm font-semibold text-gray-800 leading-snug break-words">{oi.parsedName}</span>
-                              {oi.parsedNote && (
-                                <div className="flex items-start gap-1.5 mt-1.5 mb-1">
-                                  <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-                                  <div className="bg-amber-50/80 border border-amber-100 text-amber-800 text-[11px] px-2 py-1 rounded-md font-semibold leading-snug break-words whitespace-pre-wrap min-w-0 flex-1">
-                                    {oi.parsedNote}
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           </div>
 
-                          {/* Children / Extras */}
-                          {childrenMap[oi.parsedId] && childrenMap[oi.parsedId].length > 0 && (
-                            <div className="mt-0 pt-1 space-y-1 pl-3 ml-4 border-l-2 border-gray-200 relative">
-                              <div className="absolute -top-3 left-[-3px] w-0.5 h-3 bg-gray-200" />
-                              {childrenMap[oi.parsedId].map((child: any) => (
-                                <div key={child.id} className="relative flex items-start gap-2 pl-3 py-0.5">
-                                  {/* Branch indicator */}
-                                  <div className="absolute -left-[3px] top-3 w-3 h-0.5 bg-gray-200" />
-                                  <span className="font-bold text-gray-600 text-xs w-4 shrink-0 text-right mt-0.5">{child.quantity}x</span>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-medium text-gray-600 leading-snug flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-[8px] font-bold uppercase bg-gray-200 text-gray-500 px-1 rounded-sm">Extra</span>
-                                      <span className="break-words min-w-0">{child.parsedName}</span>
-                                    </div>
-                                    {child.parsedNote && (
-                                      <div className="flex items-start gap-1.5 mt-1">
-                                        <CornerDownRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-                                        <div className="bg-amber-50/80 border border-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-md font-semibold leading-snug break-words whitespace-pre-wrap min-w-0 flex-1">
-                                          {child.parsedNote}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
+                          {/* Parent Note */}
+                          {oi.parsedNote && (
+                            <div className="relative pl-[1.6rem] mt-1.5 mb-1.5 flex items-start">
+                              <div className="absolute left-[11px] top-2.5 w-3 h-[2px] bg-gray-200" />
+                              <div className="bg-amber-50/80 border border-amber-100 text-amber-800 text-[11px] px-2 py-1 rounded-md font-semibold leading-snug break-words whitespace-pre-wrap min-w-0 flex-1">
+                                {oi.parsedNote}
+                              </div>
                             </div>
                           )}
+
+                          {/* Children / Extras */}
+                          {childrenMap[oi.parsedId] && childrenMap[oi.parsedId].map((child: any) => (
+                            <div key={child.id} className="relative pl-[1.6rem] py-1 flex items-start gap-2">
+                              <div className="absolute left-[11px] top-3 w-3 h-[2px] bg-gray-200" />
+                              <span className="font-bold text-gray-600 text-xs w-5 shrink-0 text-right mt-0.5">{child.quantity}x</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-medium text-gray-600 leading-snug flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[8px] font-bold uppercase bg-gray-200 text-gray-500 px-1 rounded-sm">Extra</span>
+                                  <span className="break-words min-w-0">{child.parsedName}</span>
+                                </div>
+                                {child.parsedNote && (
+                                  <div className="relative mt-1 flex items-start">
+                                    <div className="bg-amber-50/80 border border-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-md font-semibold leading-snug break-words whitespace-pre-wrap min-w-0 flex-1">
+                                      {child.parsedNote}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ))
                     })()}

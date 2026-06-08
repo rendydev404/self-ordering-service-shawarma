@@ -22,10 +22,11 @@ export function useKioskControl({ userId, username, outletId }: Args) {
 
     const supabase = createClient()
 
-    const deviceLabel =
-      (typeof window !== 'undefined' && window.localStorage.getItem('kiosk_device_label')) ||
-      username ||
-      'Kiosk'
+    let deviceLabel = typeof window !== 'undefined' ? window.localStorage.getItem('kiosk_device_label') : null
+    if (!deviceLabel) {
+      deviceLabel = `Kiosk-${Math.floor(Math.random() * 90 + 10)}`
+      if (typeof window !== 'undefined') window.localStorage.setItem('kiosk_device_label', deviceLabel)
+    }
 
     const channel = supabase.channel(`kiosk-control:${outletId}`, {
       config: { presence: { key: userId } },

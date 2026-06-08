@@ -4,7 +4,7 @@ import type { MenuItem } from '@/types'
 import type { RankInput } from '@/lib/recommendations'
 
 function menu(id: string, category_id: string | null, sort_order = 0, is_available = true): MenuItem {
-  return { id, category_id, name: id, description: null, price: 1000, image_url: null, is_available, sort_order }
+  return { id, outlet_id: null, category_id, name: id, description: null, price: 1000, image_url: null, is_available, sort_order }
 }
 
 // Menu: m1,m2 in catA ; topKentang,topKeju in catTop ; m3 in catB

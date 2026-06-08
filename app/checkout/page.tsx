@@ -155,23 +155,20 @@ export default function CheckoutPage() {
               {rootItems.map((root) => {
                 const children = items.filter(i => i.parentId === root.cartItemId)
                 return (
-                  <div key={root.cartItemId} className="flex flex-col gap-2 border-b border-gray-50/50 pb-3 last:border-0 last:pb-0">
-                    {/* Root Item */}
-                    <div className="flex items-start justify-between gap-3">
+                  <div key={root.cartItemId} className="flex flex-col border-b border-gray-50/50 pb-3 last:border-0 last:pb-0 relative py-1">
+                    {/* Vertical Line */}
+                    {(root.note || children.length > 0) && (
+                      <div className="absolute left-[11px] top-6 bottom-4 w-[2px] bg-gray-200" />
+                    )}
+
+                    {/* Root Item Row */}
+                    <div className="flex items-start justify-between gap-3 relative z-10">
                       <div className="flex items-start gap-3 min-w-0 flex-1">
-                        <span className="w-6 h-6 bg-amber-50 text-amber-600 text-xs font-bold
-                          rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="w-6 h-6 bg-amber-50 text-amber-600 text-xs font-bold rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                           {root.quantity}
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-gray-900 text-[15px] font-bold leading-tight">{root.item.name}</p>
-                          {root.note && (
-                            <div className="mt-1.5 inline-flex bg-gray-50/80 border border-gray-100 px-2.5 py-1.5 rounded-lg max-w-full">
-                              <p className="text-gray-500 text-xs leading-relaxed truncate whitespace-normal line-clamp-2">
-                                <span className="font-semibold text-gray-700">Catatan:</span> {root.note}
-                              </p>
-                            </div>
-                          )}
                         </div>
                       </div>
                       <span className="text-gray-900 text-[15px] font-black flex-shrink-0 mt-0.5">
@@ -179,35 +176,45 @@ export default function CheckoutPage() {
                       </span>
                     </div>
 
-                    {/* Children */}
-                    {children.length > 0 && (
-                      <div className="mt-1 space-y-2 pl-3 ml-3 border-l-2 border-gray-200 relative">
-                        {children.map(child => (
-                          <div key={child.cartItemId} className="relative flex items-start justify-between gap-3">
-                            {/* Branch indicator */}
-                            <div className="absolute -left-3 top-2.5 w-3 h-0.5 bg-gray-200" />
-                            
-                            <div className="flex items-start gap-2 min-w-0 flex-1">
-                              <span className="w-5 h-5 bg-gray-50 text-gray-500 text-[10px] font-bold
-                                rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
-                                {child.quantity}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-gray-600 text-sm font-semibold leading-tight">{child.item.name}</p>
-                                {child.note && (
-                                  <p className="text-gray-400 text-[11px] mt-0.5 italic truncate">
-                                    {child.note}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <span className="text-gray-600 text-sm font-bold flex-shrink-0 mt-0.5">
-                              {formatRupiah(child.item.price * child.quantity)}
-                            </span>
-                          </div>
-                        ))}
+                    {/* Root Note */}
+                    {root.note && (
+                      <div className="relative pl-[2.25rem] mt-2 mb-1 flex items-start">
+                        <div className="absolute left-[11px] top-3 w-3 h-[2px] bg-gray-200" />
+                        <div className="inline-flex bg-gray-50/80 border border-gray-100 px-2.5 py-1.5 rounded-lg max-w-full min-w-0">
+                          <p className="text-gray-500 text-xs leading-relaxed whitespace-pre-wrap break-words min-w-0 flex-1">
+                            <span className="font-semibold text-gray-700">Catatan: </span> {root.note}
+                          </p>
+                        </div>
                       </div>
                     )}
+
+                    {/* Children */}
+                    {children.length > 0 && children.map(child => (
+                      <div key={child.cartItemId} className="relative flex items-start justify-between gap-3 pl-[2.25rem] py-1 mt-1">
+                        {/* Branch indicator */}
+                        <div className="absolute left-[11px] top-3 w-3 h-[2px] bg-gray-200" />
+                        
+                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                          <span className="w-5 h-5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
+                            {child.quantity}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-gray-600 text-sm font-semibold leading-tight flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[9px] font-bold uppercase bg-gray-100 text-gray-500 px-1 rounded-sm">Extra</span>
+                              {child.item.name}
+                            </p>
+                            {child.note && (
+                              <p className="text-gray-400 text-[11px] mt-1 italic whitespace-pre-wrap break-words">
+                                {child.note}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-gray-600 text-sm font-bold flex-shrink-0 mt-0.5">
+                          {formatRupiah(child.item.price * child.quantity)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )
               })}

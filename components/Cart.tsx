@@ -40,19 +40,26 @@ export default function Cart() {
         {rootItems.map((root) => {
           const children = items.filter(i => i.parentId === root.cartItemId)
           return (
-            <div key={root.cartItemId} className="py-3 border-b border-gray-50 last:border-0 flex flex-col gap-2">
-              <CartItemRow 
-                itemData={root} 
-                updateQuantity={updateQuantity} 
-                removeItem={removeItem} 
-              />
+            <div key={root.cartItemId} className="py-3 border-b border-gray-50 last:border-0 flex flex-col gap-2 relative">
+              {/* Vertical Line for Cart */}
+              {children.length > 0 && (
+                <div className="absolute left-[24px] top-12 bottom-6 w-[2px] bg-gray-200" />
+              )}
+              
+              <div className="relative z-10">
+                <CartItemRow 
+                  itemData={root} 
+                  updateQuantity={updateQuantity} 
+                  removeItem={removeItem} 
+                />
+              </div>
               
               {children.length > 0 && (
-                <div className="mt-1 space-y-2 pl-4 ml-6 border-l-2 border-gray-200 relative">
+                <div className="mt-1 space-y-2 relative">
                   {children.map(child => (
-                    <div key={child.cartItemId} className="relative">
+                    <div key={child.cartItemId} className="relative pl-[3.5rem]">
                       {/* L-Shape branch indicator */}
-                      <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-4 h-0.5 bg-gray-200" />
+                      <div className="absolute left-[24px] top-[1.25rem] w-4 h-[2px] bg-gray-200" />
                       <CartItemRow 
                         itemData={child} 
                         updateQuantity={updateQuantity} 

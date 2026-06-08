@@ -25,6 +25,14 @@ export default function KioskUI({ menuItems, categories, bestsellerIds, coverUrl
   const pathname = usePathname()
   const [selectedCategory, setSelectedCategory] = useState('all')
   const { totalItems, totalPrice, isOpen, toggleCart, clearCart, closeCart } = useCart()
+  const [deviceLabel, setDeviceLabel] = useState<string>('')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const label = window.localStorage.getItem('kiosk_device_label')
+      if (label) setDeviceLabel(label)
+    }
+  }, [])
 
   // Reset idle countdown when user returns to menu page (from detail/checkout)
   useEffect(() => {
@@ -81,10 +89,10 @@ export default function KioskUI({ menuItems, categories, bestsellerIds, coverUrl
               </h1>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-gray-400 text-[10px] font-semibold tracking-[.2em] uppercase leading-none">
-                  Kiosk
+                  Kiosk {deviceLabel && <span className="font-bold text-gray-500">[{deviceLabel}]</span>}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                <span className="text-amber-500 text-[10px] font-bold uppercase leading-none truncate max-w-[120px]">
+                <span className="text-amber-500 text-[10px] font-bold uppercase leading-none">
                   {outletName}
                 </span>
               </div>
