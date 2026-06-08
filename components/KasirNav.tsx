@@ -43,7 +43,7 @@ export default function KasirNav() {
   return (
     <>
       {/* Top bar mobile */}
-      <header className="print:hidden md:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 shadow-sm">
+      <header className="print:hidden lg:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 shadow-sm">
         <Link href="/kasir" className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center">
             <Sandwich className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -61,19 +61,19 @@ export default function KasirNav() {
       {/* Backdrop */}
       {open && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-fade-in"
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-fade-in"
           onClick={() => setOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`print:hidden fixed md:sticky top-0 left-0 z-50 md:z-auto
+        className={`print:hidden fixed lg:sticky top-0 left-0 z-50 lg:z-auto
           h-screen w-64 shrink-0
           bg-white border-r border-gray-100
           flex flex-col
           transition-transform duration-300 ease-out
-          ${open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:translate-x-0`}
+          ${open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} lg:translate-x-0`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100 shrink-0">
           <Link href="/kasir" className="flex items-center gap-3" onClick={() => setOpen(false)}>
@@ -89,7 +89,7 @@ export default function KasirNav() {
           </Link>
           <button
             onClick={() => setOpen(false)}
-            className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50"
+            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50"
           >
             <X className="w-5 h-5" />
           </button>

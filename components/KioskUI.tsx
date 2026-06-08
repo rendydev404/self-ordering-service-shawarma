@@ -223,11 +223,10 @@ export default function KioskUI({ menuItems, categories, bestsellerIds, coverUrl
 
       {/* ── Mobile cart overlay ──────────────────── */}
       {isOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden" onClick={toggleCart}>
-          <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm animate-fade-in" />
+        <div className="fixed inset-0 z-50 lg:hidden flex items-center justify-center p-4 sm:p-6" onClick={toggleCart}>
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm animate-fade-in" />
           <div
-            className="absolute right-0 top-0 h-full w-[320px] max-w-[90vw] bg-white
-              flex flex-col min-h-0 shadow-2xl animate-slide-in"
+            className="relative w-full max-w-[380px] bg-white rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             <Cart />
