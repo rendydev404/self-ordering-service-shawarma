@@ -28,19 +28,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Kasir belum dihubungkan ke cabang manapun.' }, { status: 400 })
     }
 
-    // Cari user kiosk di outlet yang sama
+    // 1. Parse body untuk mendapatkan kiosk_id
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Request body tidak valid' }, { status: 400 })
+    }
+
+    const { kiosk_id } = body
+    if (!kiosk_id) {
+      return NextResponse.json({ error: 'ID Akun Kiosk tidak ditemukan.' }, { status: 400 })
+    }
+
+    // 2. Cari user kiosk spesifik di outlet yang sama
     const { data: kioskProfile } = await supabaseService
       .from('profiles')
       .select('id, username')
+      .eq('id', kiosk_id)
       .eq('role', 'kiosk')
       .eq('outlet_id', profile.outlet_id)
       .eq('is_active', true)
-      .limit(1)
       .single()
 
     if (!kioskProfile) {
       return NextResponse.json({ 
-        error: 'Tidak ditemukan akun Kiosk aktif untuk cabang ini. Silakan hubungi Admin.' 
+        error: 'Akun Kiosk tersebut tidak ditemukan atau tidak aktif di cabang ini.' 
       }, { status: 404 })
     }
 

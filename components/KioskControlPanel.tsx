@@ -27,8 +27,10 @@ export default function KioskControlPanel() {
 
   // State untuk fitur QR Auto Login
   const [qrLink, setQrLink] = useState<string | null>(null)
-  const [qrLoading, setQrLoading] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
+  const [kioskAccounts, setKioskAccounts] = useState<{id: string, username: string}[]>([])
+  const [qrModalState, setQrModalState] = useState<'loading_accounts' | 'list' | 'loading_qr' | 'qr'>('loading_accounts')
+  const [selectedKiosk, setSelectedKiosk] = useState<{id: string, username: string} | null>(null)
 
   // Ambil outlet_id kasir yang sedang login
   useEffect(() => {
@@ -148,24 +150,48 @@ export default function KioskControlPanel() {
     setReloadKey((k) => k + 1)
   }
 
-  async function handleGenerateQR() {
+  async function handleOpenQrModal() {
     setShowQrModal(true)
-    setQrLoading(true)
+    setQrModalState('loading_accounts')
     setQrLink(null)
+    setSelectedKiosk(null)
+    
     try {
-      const res = await fetch('/api/kasir/generate-kiosk-qr', { method: 'POST' })
+      const res = await fetch('/api/kasir/kiosk-accounts')
       const data = await res.json()
       if (!res.ok) {
-        showToast({ type: 'error', message: data.error || 'Gagal generate QR' })
+        showToast({ type: 'error', message: data.error || 'Gagal memuat akun kiosk' })
         setShowQrModal(false)
       } else {
-        setQrLink(data.action_link)
+        setKioskAccounts(data.accounts || [])
+        setQrModalState('list')
       }
     } catch {
       showToast({ type: 'error', message: 'Gagal menghubungi server' })
       setShowQrModal(false)
-    } finally {
-      setQrLoading(false)
+    }
+  }
+
+  async function generateQrForKiosk(kiosk: {id: string, username: string}) {
+    setSelectedKiosk(kiosk)
+    setQrModalState('loading_qr')
+    try {
+      const res = await fetch('/api/kasir/generate-kiosk-qr', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kiosk_id: kiosk.id })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast({ type: 'error', message: data.error || 'Gagal generate QR' })
+        setQrModalState('list')
+      } else {
+        setQrLink(data.action_link)
+        setQrModalState('qr')
+      }
+    } catch {
+      showToast({ type: 'error', message: 'Gagal menghubungi server' })
+      setQrModalState('list')
     }
   }
 
@@ -193,7 +219,7 @@ export default function KioskControlPanel() {
             <span className="hidden sm:inline">Refresh</span>
           </button>
           <button
-            onClick={handleGenerateQR}
+            onClick={handleOpenQrModal}
             className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-colors"
           >
             <QrCode className="w-5 h-5" />
@@ -292,25 +318,77 @@ export default function KioskControlPanel() {
             <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4">
               <QrCode className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Scan QR untuk Login</h2>
-            <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
-              Buka aplikasi kamera di tablet Kiosk Anda dan arahkan ke kode QR ini.
-            </p>
             
-            <div className="bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-sm mb-4">
-              {qrLoading ? (
-                <div className="w-[200px] h-[200px] flex flex-col items-center justify-center gap-3">
-                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                  <p className="text-xs text-gray-400 font-bold animate-pulse">Menghasilkan Kode...</p>
+            {qrModalState === 'loading_accounts' && (
+               <div className="py-10 flex flex-col items-center gap-3">
+                 <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                 <p className="text-gray-500 font-medium text-sm">Memuat akun kiosk...</p>
+               </div>
+            )}
+            
+            {qrModalState === 'list' && (
+              <>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Pilih Akun Kiosk</h2>
+                <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
+                  Pilih akun Kiosk yang akan dihubungkan dengan perangkat ini.
+                </p>
+                <div className="w-full space-y-3 mb-6 max-h-[40vh] overflow-y-auto pr-1">
+                  {kioskAccounts.length === 0 ? (
+                    <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
+                      Tidak ada akun Kiosk untuk cabang ini. Minta Admin untuk membuatnya.
+                    </div>
+                  ) : (
+                    kioskAccounts.map(k => (
+                      <button
+                        key={k.id}
+                        onClick={() => generateQrForKiosk(k)}
+                        className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                      >
+                        <div className="font-bold text-gray-900 group-hover:text-indigo-900 truncate pr-2">{k.username}</div>
+                        <div className="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors shrink-0">
+                          Buat QR
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </div>
-              ) : qrLink ? (
-                <QRCodeSVG value={qrLink} size={200} level="Q" includeMargin={false} />
-              ) : (
-                <div className="w-[200px] h-[200px] flex items-center justify-center text-red-500 text-sm font-bold">
-                  Gagal Memuat
+              </>
+            )}
+
+            {(qrModalState === 'loading_qr' || qrModalState === 'qr') && (
+              <>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  Scan QR {selectedKiosk?.username}
+                </h2>
+                <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
+                  Buka aplikasi kamera di tablet Kiosk Anda dan arahkan ke kode QR ini.
+                </p>
+                
+                <div className="bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-sm mb-4">
+                  {qrModalState === 'loading_qr' ? (
+                    <div className="w-[200px] h-[200px] flex flex-col items-center justify-center gap-3">
+                      <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                      <p className="text-xs text-gray-400 font-bold animate-pulse">Menghasilkan Kode...</p>
+                    </div>
+                  ) : qrLink ? (
+                    <QRCodeSVG value={qrLink} size={200} level="Q" includeMargin={false} />
+                  ) : (
+                    <div className="w-[200px] h-[200px] flex items-center justify-center text-red-500 text-sm font-bold">
+                      Gagal Memuat
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+                
+                {qrModalState === 'qr' && (
+                  <button
+                    onClick={() => setQrModalState('list')}
+                    className="text-indigo-600 font-bold text-sm hover:underline mb-4 block"
+                  >
+                    &larr; Kembali ke daftar akun
+                  </button>
+                )}
+              </>
+            )}
             
             <button
               onClick={() => setShowQrModal(false)}
