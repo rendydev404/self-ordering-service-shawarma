@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sandwich, Loader2, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight } from 'lucide-react'
+import { Sandwich, Loader2, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight, BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useBrand } from '@/components/BrandContext'
+import Link from 'next/link'
 
 export default function UnifiedLoginPage() {
   const router = useRouter()
@@ -170,6 +171,14 @@ export default function UnifiedLoginPage() {
             )}
           </button>
         </form>
+
+        {/* Panduan Link */}
+        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+          <Link href="/panduan" className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-amber-600 transition-colors">
+            <BookOpen className="w-4 h-4" />
+            <span>Bingung cara pakai? <span className="underline decoration-amber-500/30 underline-offset-4">Baca Buku Panduan</span></span>
+          </Link>
+        </div>
 
       </div>
     </div>

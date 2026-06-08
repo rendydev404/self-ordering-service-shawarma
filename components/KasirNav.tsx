@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ClipboardList, Sandwich, LogOut, Bell, BarChart3, Menu, X, Monitor, Image as ImageIcon } from 'lucide-react'
+import { ClipboardList, Sandwich, LogOut, Bell, BarChart3, Menu, X, Monitor, Image as ImageIcon, BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useMyOutlet } from '@/lib/useMyOutlet'
 import { useEffect } from 'react'
@@ -16,6 +16,7 @@ const links = [
   { href: '/kasir/kiosk',      label: 'Kontrol Kiosk', icon: Monitor },
   { href: '/kasir/reports',    label: 'Laporan',       icon: BarChart3 },
   { href: '/kasir/settings',   label: 'Tampilan Layar',icon: ImageIcon },
+  { href: '/panduan',          label: 'Panduan',       icon: BookOpen },
 ]
 
 export default function KasirNav() {
