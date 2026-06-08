@@ -196,8 +196,9 @@ export default function KioskControlPanel() {
   }
 
   return (
-    <div className="animate-fade-in space-y-6">
-      {/* Header */}
+    <>
+      <div className="animate-fade-in space-y-6">
+        {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Kontrol Kiosk</h1>
@@ -295,9 +296,11 @@ export default function KioskControlPanel() {
         )}
       </div>
 
+      </div>
+
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg font-semibold text-sm animate-fade-up ${
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg font-semibold text-sm animate-fade-up ${
           toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
         }`}>
           {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
@@ -307,7 +310,7 @@ export default function KioskControlPanel() {
 
       {/* QR Code Modal */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-8 relative animate-fade-up flex flex-col items-center text-center">
             <button 
               onClick={() => setShowQrModal(false)}
@@ -399,6 +402,6 @@ export default function KioskControlPanel() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
