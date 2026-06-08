@@ -15,13 +15,17 @@ export const metadata: Metadata = {
   description: 'Pesan shawarma favoritmu dengan mudah dan cepat',
 }
 
+import { BrandProvider } from '@/components/BrandContext'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={inter.variable}>
       <body>
-        <KioskPresenceMount />
-        <GlobalBlockerMount />
-        {children}
+        <BrandProvider>
+          <KioskPresenceMount />
+          <GlobalBlockerMount />
+          {children}
+        </BrandProvider>
       </body>
     </html>
   )

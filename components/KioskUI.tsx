@@ -10,6 +10,7 @@ import { useCart } from '@/store/cart'
 import { formatRupiah } from '@/lib/validations'
 import AttractScreen from '@/components/AttractScreen'
 import type { MenuItem as MenuItemType, Category } from '@/types'
+import { useBrand } from '@/components/BrandContext'
 
 interface Props {
   menuItems: MenuItemType[]
@@ -26,6 +27,7 @@ export default function KioskUI({ menuItems, categories, bestsellerIds, coverUrl
   const [selectedCategory, setSelectedCategory] = useState('all')
   const { totalItems, totalPrice, isOpen, toggleCart, clearCart, closeCart } = useCart()
   const [deviceLabel, setDeviceLabel] = useState<string>('')
+  const { brandName, brandLogo } = useBrand()
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -79,13 +81,17 @@ export default function KioskUI({ menuItems, categories, bestsellerIds, coverUrl
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
-              <Sandwich className="w-5 h-5 text-white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-900 text-lg tracking-tight leading-none">
-                SHAWARMA
+          <div className="flex items-center gap-3 min-w-0 pr-4">
+            {brandLogo ? (
+              <img src={brandLogo} alt="Logo" className="w-10 h-10 object-cover rounded-xl shrink-0 shadow-sm" />
+            ) : (
+              <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shrink-0">
+                <Sandwich className="w-5 h-5 text-white" strokeWidth={2.5} />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="font-bold text-gray-900 text-lg tracking-tight leading-none truncate">
+                {brandName}
               </h1>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-gray-400 text-[10px] font-semibold tracking-[.2em] uppercase leading-none">

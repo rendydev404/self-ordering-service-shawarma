@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sandwich, Loader2, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useBrand } from '@/components/BrandContext'
 
 export default function UnifiedLoginPage() {
   const router = useRouter()
@@ -12,6 +13,7 @@ export default function UnifiedLoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { brandName, brandLogo } = useBrand()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -77,14 +79,18 @@ export default function UnifiedLoginPage() {
         
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/20">
-            <Sandwich className="w-8 h-8 text-white" strokeWidth={1.5} />
-          </div>
+          {brandLogo ? (
+            <img src={brandLogo} alt="Logo" className="w-16 h-16 object-cover rounded-2xl shadow-lg shadow-amber-500/20" />
+          ) : (
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <Sandwich className="w-8 h-8 text-white" strokeWidth={1.5} />
+            </div>
+          )}
         </div>
 
         {/* Welcome Text */}
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">SHAWARMA POS</h2>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">{brandName} POS</h2>
           <p className="text-gray-500 mt-2 text-sm font-medium">Masuk sebagai Admin, Kasir, atau Kiosk.</p>
         </div>
 

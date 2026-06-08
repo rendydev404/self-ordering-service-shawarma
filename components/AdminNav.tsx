@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ClipboardList, Sandwich, LogOut, LayoutDashboard, Tag, Radio, BarChart3, Settings, Menu, X, Store, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useBrand } from '@/components/BrandContext'
 
 const links = [
   { href: '/admin',            label: 'Overview',  icon: BarChart3 },
@@ -13,12 +14,14 @@ const links = [
   { href: '/admin/categories', label: 'Kategori',  icon: Tag },
   { href: '/admin/outlets',    label: 'Cabang',    icon: Store },
   { href: '/admin/users',      label: 'Pengguna',  icon: Users },
+  { href: '/admin/settings',   label: 'Pengaturan',icon: Settings },
 ]
 
 export default function AdminNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const { brandName, brandLogo } = useBrand()
 
   async function handleLogout() {
     const supabase = createClient()
@@ -31,10 +34,14 @@ export default function AdminNav() {
       {/* ── Top bar mobile (< md) ── */}
       <header className="print:hidden md:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 shadow-sm">
         <Link href="/admin" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center">
-            <Sandwich className="w-4 h-4 text-white" strokeWidth={2.5} />
-          </div>
-          <p className="text-gray-900 font-bold text-sm tracking-tight">SHAWARMA</p>
+          {brandLogo ? (
+            <img src={brandLogo} alt="Logo" className="w-8 h-8 object-cover rounded-xl" />
+          ) : (
+            <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center">
+              <Sandwich className="w-4 h-4 text-white" strokeWidth={2.5} />
+            </div>
+          )}
+          <p className="text-gray-900 font-bold text-sm tracking-tight truncate max-w-[120px]">{brandName}</p>
         </Link>
         <button
           onClick={() => setOpen(true)}
@@ -64,12 +71,16 @@ export default function AdminNav() {
       >
         {/* Brand */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100 shrink-0">
-          <Link href="/admin" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-            <div className="w-9 h-9 bg-amber-500 rounded-2xl flex items-center justify-center">
-              <Sandwich className="w-5 h-5 text-white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <p className="text-gray-900 font-bold text-[15px] tracking-tight leading-none">SHAWARMA</p>
+          <Link href="/admin" className="flex items-center gap-3 min-w-0" onClick={() => setOpen(false)}>
+            {brandLogo ? (
+              <img src={brandLogo} alt="Logo" className="w-9 h-9 object-cover rounded-2xl shrink-0" />
+            ) : (
+              <div className="w-9 h-9 bg-amber-500 rounded-2xl flex items-center justify-center shrink-0">
+                <Sandwich className="w-5 h-5 text-white" strokeWidth={2.5} />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-gray-900 font-bold text-[15px] tracking-tight leading-none truncate">{brandName}</p>
               <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest leading-none mt-1">
                 Admin
               </p>

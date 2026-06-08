@@ -7,6 +7,7 @@ import { ClipboardList, Sandwich, LogOut, Bell, BarChart3, Menu, X, Monitor, Ima
 import { createClient } from '@/lib/supabase/client'
 import { useMyOutlet } from '@/lib/useMyOutlet'
 import { useEffect } from 'react'
+import { useBrand } from '@/components/BrandContext'
 
 const links = [
   { href: '/kasir',            label: 'Order',         icon: Bell },
@@ -23,6 +24,7 @@ export default function KasirNav() {
   const [open, setOpen] = useState(false)
   const { outletId } = useMyOutlet()
   const [outletName, setOutletName] = useState('Kasir Outlet')
+  const { brandName, brandLogo } = useBrand()
 
   useEffect(() => {
     if (!outletId) return
@@ -45,10 +47,14 @@ export default function KasirNav() {
       {/* Top bar mobile */}
       <header className="print:hidden lg:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 shadow-sm">
         <Link href="/kasir" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center">
-            <Sandwich className="w-4 h-4 text-white" strokeWidth={2.5} />
-          </div>
-          <p className="text-gray-900 font-bold text-sm tracking-tight">KASIR</p>
+          {brandLogo ? (
+            <img src={brandLogo} alt="Logo" className="w-8 h-8 object-cover rounded-xl" />
+          ) : (
+            <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center">
+              <Sandwich className="w-4 h-4 text-white" strokeWidth={2.5} />
+            </div>
+          )}
+          <p className="text-gray-900 font-bold text-sm tracking-tight truncate max-w-[120px]">{brandName}</p>
         </Link>
         <button
           onClick={() => setOpen(true)}
@@ -76,12 +82,16 @@ export default function KasirNav() {
           ${open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} lg:translate-x-0`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100 shrink-0">
-          <Link href="/kasir" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-            <div className="w-9 h-9 bg-amber-500 rounded-2xl flex items-center justify-center">
-              <Sandwich className="w-5 h-5 text-white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <p className="text-gray-900 font-bold text-[15px] tracking-tight leading-none">SHAWARMA</p>
+          <Link href="/kasir" className="flex items-center gap-3 min-w-0" onClick={() => setOpen(false)}>
+            {brandLogo ? (
+              <img src={brandLogo} alt="Logo" className="w-9 h-9 object-cover rounded-2xl shrink-0" />
+            ) : (
+              <div className="w-9 h-9 bg-amber-500 rounded-2xl flex items-center justify-center shrink-0">
+                <Sandwich className="w-5 h-5 text-white" strokeWidth={2.5} />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-gray-900 font-bold text-[15px] tracking-tight leading-none truncate">{brandName}</p>
               <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest leading-none mt-1 truncate max-w-[140px]">
                 {outletName}
               </p>
