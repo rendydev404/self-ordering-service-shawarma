@@ -57,11 +57,11 @@ function QRISPaymentContent() {
       if (!isMounted) return
       setStatus('processing')
 
-      const supabase = createClient()
-      await supabase
-        .from('orders')
-        .update({ status: 'preparing', updated_at: new Date().toISOString() })
-        .eq('id', orderId)
+      await fetch('/api/qris-simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId })
+      })
 
       if (!isMounted) return
       setStatus('success')
@@ -69,7 +69,7 @@ function QRISPaymentContent() {
       setTimeout(() => {
         if (isMounted) router.push(`/order-success?id=${orderId}&number=${orderNumber}&pay=qris`)
       }, 2000)
-    }, 5000)
+    }, 2000)
 
     return () => {
       isMounted = false
@@ -84,21 +84,21 @@ function QRISPaymentContent() {
     setStatus('processing')
 
     // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     // Update order to preparing (straight to kitchen)
-    const supabase = createClient()
-    await supabase
-      .from('orders')
-      .update({ status: 'preparing', updated_at: new Date().toISOString() })
-      .eq('id', orderId)
+    await fetch('/api/qris-simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId })
+    })
 
     setStatus('success')
 
     // Redirect to success after a moment
     setTimeout(() => {
       router.push(`/order-success?id=${orderId}&number=${orderNumber}&pay=qris`)
-    }, 2500)
+    }, 1000)
   }
 
   const minutes = Math.floor(timeLeft / 60)
