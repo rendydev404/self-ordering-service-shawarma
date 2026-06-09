@@ -103,7 +103,7 @@ export default function KioskControlPanel() {
       })
       const data = await res.json()
       if (!res.ok) {
-        showToast({ type: 'error', message: data.error || 'Gagal me-logout kiosk' })
+        showToast({ type: 'error', message: data.error || 'Gagal me-logout device' })
       } else {
         showToast({ type: 'success', message: `${label} berhasil di-logout` })
       }
@@ -115,15 +115,15 @@ export default function KioskControlPanel() {
   }
 
   function handleLogoutOne(k: KioskPresence) {
-    if (confirm(`Logout kiosk "${k.device_label}"? Device akan kembali ke halaman login.`)) {
+    if (confirm(`Logout device "${k.device_label}"? Device akan kembali ke halaman login.`)) {
       doLogout(k.userId, k.device_label)
     }
   }
 
   function handleLogoutAll() {
     if (kiosks.length === 0) return
-    if (confirm(`Logout SEMUA ${kiosks.length} kiosk di cabang ini? Semua device akan kembali ke login.`)) {
-      doLogout('all', 'Semua kiosk')
+    if (confirm(`Logout SEMUA ${kiosks.length} device di cabang ini? Semua device akan kembali ke login.`)) {
+      doLogout('all', 'Semua device')
     }
   }
 
@@ -160,7 +160,7 @@ export default function KioskControlPanel() {
       const res = await fetch('/api/kasir/kiosk-accounts')
       const data = await res.json()
       if (!res.ok) {
-        showToast({ type: 'error', message: data.error || 'Gagal memuat akun kiosk' })
+        showToast({ type: 'error', message: data.error || 'Gagal memuat akun device' })
         setShowQrModal(false)
       } else {
         setKioskAccounts(data.accounts || [])
@@ -201,9 +201,9 @@ export default function KioskControlPanel() {
         {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Kontrol Kiosk</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Kontrol Device Pelanggan</h1>
           <p className="text-gray-500 mt-1 text-sm sm:text-base font-medium flex items-center gap-2">
-            Device kiosk yang sedang aktif di cabang Anda.
+            Device yang sedang aktif di cabang Anda.
             <span className={`inline-flex items-center gap-1 text-xs font-bold ${connected ? 'text-emerald-600' : 'text-gray-400'}`}>
               <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-gray-300'}`} />
               {connected ? 'Terhubung' : 'Menghubungkan…'}
@@ -214,7 +214,7 @@ export default function KioskControlPanel() {
           <button
             onClick={handleRefresh}
             className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-3 rounded-2xl font-bold hover:bg-gray-50 transition-colors"
-            title="Perbarui daftar kiosk"
+            title="Perbarui daftar device"
           >
             <RefreshCw className="w-5 h-5" />
             <span className="hidden sm:inline">Refresh</span>
@@ -232,7 +232,7 @@ export default function KioskControlPanel() {
             className="flex items-center justify-center gap-2 bg-red-500 text-white px-5 py-3 rounded-2xl font-bold hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {busy === 'all' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Power className="w-5 h-5" />}
-            Logout Semua Kiosk
+            Logout Semua Device
           </button>
         </div>
       </div>
@@ -243,10 +243,10 @@ export default function KioskControlPanel() {
           <AlertCircle className="w-5 h-5 text-amber-600" />
         </div>
         <div className="text-sm">
-          <p className="font-bold mb-1 text-amber-900">Panduan Mengelola Banyak Kiosk</p>
+          <p className="font-bold mb-1 text-amber-900">Panduan Mengelola Banyak Device</p>
           <p className="leading-relaxed text-amber-800/90">
-            Jika ada beberapa device Kiosk yang menyala bersamaan, pastikan untuk melihat 
-            <span className="font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded mx-1">ID Kiosk (misal: Kiosk-45)</span> 
+            Jika ada beberapa device yang menyala bersamaan, pastikan untuk melihat 
+            <span className="font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded mx-1">ID Device (misal: Device-45)</span> 
             yang tampil di pojok kiri atas layar device pelanggan. Cocokkan ID tersebut dengan daftar di bawah ini untuk mengetahui pasti device mana yang akan Anda <i>logout</i>.
           </p>
         </div>
@@ -263,8 +263,8 @@ export default function KioskControlPanel() {
         ) : kiosks.length === 0 ? (
           <div className="flex flex-col items-center text-center py-10">
             <Monitor className="w-12 h-12 text-gray-200 mb-3" strokeWidth={1.5} />
-            <p className="font-bold text-gray-400">Tidak ada kiosk online</p>
-            <p className="text-xs text-gray-400 mt-1">Device kiosk yang menyala akan muncul otomatis di sini.</p>
+            <p className="font-bold text-gray-400">Tidak ada device online</p>
+            <p className="text-xs text-gray-400 mt-1">Device yang menyala akan muncul otomatis di sini.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -325,20 +325,20 @@ export default function KioskControlPanel() {
             {qrModalState === 'loading_accounts' && (
                <div className="py-10 flex flex-col items-center gap-3">
                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                 <p className="text-gray-500 font-medium text-sm">Memuat akun kiosk...</p>
+                 <p className="text-gray-500 font-medium text-sm">Memuat akun device...</p>
                </div>
             )}
             
             {qrModalState === 'list' && (
               <>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Pilih Akun Kiosk</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Pilih Akun Device</h2>
                 <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
-                  Pilih akun Kiosk yang akan dihubungkan dengan perangkat ini.
+                  Pilih akun Device yang akan dihubungkan dengan perangkat ini.
                 </p>
                 <div className="w-full space-y-3 mb-6 max-h-[40vh] overflow-y-auto pr-1">
                   {kioskAccounts.length === 0 ? (
                     <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
-                      Tidak ada akun Kiosk untuk cabang ini. Minta Admin untuk membuatnya.
+                      Tidak ada akun Device untuk cabang ini. Minta Admin untuk membuatnya.
                     </div>
                   ) : (
                     kioskAccounts.map(k => (
@@ -364,7 +364,7 @@ export default function KioskControlPanel() {
                   Scan QR {selectedKiosk?.username}
                 </h2>
                 <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
-                  Buka aplikasi kamera di tablet Kiosk Anda dan arahkan ke kode QR ini.
+                  Buka aplikasi kamera di tablet Device Anda dan arahkan ke kode QR ini.
                 </p>
                 
                 <div className="bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-sm mb-4">

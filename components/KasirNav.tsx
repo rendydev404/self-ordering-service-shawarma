@@ -13,7 +13,7 @@ const links = [
   { href: '/kasir',            label: 'Order',         icon: Bell },
   { href: '/kasir/menu',       label: 'Manajemen Menu',icon: Sandwich },
   { href: '/kasir/histori',    label: 'Histori',       icon: ClipboardList },
-  { href: '/kasir/kiosk',      label: 'Kontrol Kiosk', icon: Monitor },
+  { href: '/kasir/kiosk',      label: 'Kontrol Device Pelanggan', icon: Monitor },
   { href: '/kasir/reports',    label: 'Laporan',       icon: BarChart3 },
   { href: '/kasir/settings',   label: 'Tampilan Layar',icon: ImageIcon },
   { href: '/panduan',          label: 'Panduan',       icon: BookOpen },

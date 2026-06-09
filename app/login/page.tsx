@@ -92,7 +92,7 @@ export default function UnifiedLoginPage() {
         {/* Welcome Text */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">{brandName} POS</h2>
-          <p className="text-gray-500 mt-2 text-sm font-medium">Masuk sebagai Admin, Kasir, atau Kiosk.</p>
+          <p className="text-gray-500 mt-2 text-sm font-medium">Masuk sebagai Admin, Kasir, atau Device.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
